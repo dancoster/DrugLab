@@ -11,6 +11,7 @@ notebook = "*"
 ipython-sql = "*"
 pandas = "*"
 h5py = "*"
+scipy = "*"
 
 [dev-packages]
 
