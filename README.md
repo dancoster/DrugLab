@@ -30,26 +30,14 @@ Drive Link to Datasets : https://drive.google.com/drive/folders/1KGo8IhGQDtQEUW5
 Drive Link to CSV Files : https://drive.google.com/drive/folders/1GVhYml7dnjQpYCfJFtatNJ2M9R03uinF?usp=sharing
 
     .
-    ├── test                  # 
-    │   ├── File1               # Load and stress tests
-    │   ├── File2               # End-to-end, integration tests (alternatively `e2e`)
-    │   └── File3               # Unit tests
-    └── test                  # 
-    │   ├── File1               # Load and stress tests
-    │   ├── File2               # End-to-end, integration tests (alternatively `e2e`)
-    │   └── File3               # Unit tests
-    └── test                  # 
-    │   ├── File1               # Load and stress tests
-    │   ├── File2               # End-to-end, integration tests (alternatively `e2e`)
-    │   └── File3               # Unit tests
-    └── test                  # 
-    │   ├── File1               # Load and stress tests
-    │   ├── File2               # End-to-end, integration tests (alternatively `e2e`)
-    │   └── File3               # Unit tests
-    └── test                  # 
-        ├── benchmarks          # Load and stress tests
-        ├── integration         # End-to-end, integration tests (alternatively `e2e`)
-        └── unit
+    ├── Drugs                           # Drugs Table related results 
+    │   ├── Retrieval                                        
+    │   └── Significant                           
+    └── Medication                      # Medication Table related results 
+        ├── Retieval-NoRandomSelection      # Data taken without random selection
+        ├── Retieval-RandomSelection        # Data retrieved with random selection and ttest results generated
+        ├── Significant-RandomSelection     # Signicant Med-Labtest pairs
+        └── Trend                           # Trend analysis (Compared the coefficent of linear regression of lab test values before and after first medication) 
 
 ## Plots
 Drive Link to Medication<>Labtest Pair value plots : https://drive.google.com/drive/folders/1HV8gQ5LA3HhJc4ACL0DbOFec7bkweyk5?usp=sharing
