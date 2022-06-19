@@ -6,21 +6,15 @@ Repository for medication<>lab-test pair.
 ## Directory Structure
 
     .
-    ├── sql_queries             # Compiled files
     ├── docs                    # Documentation files (Will update shortly)
+    ├── sql_queries             # SQL Queries used to read from MIMIC-III Postgre SQL Database
     ├── src                     # Source files (Notebooks with code)
-    │   ├── File1                 # Load and stress tests
-    │   │   ├── File1               # Load and stress tests
-    │   │   ├── File2               # End-to-end, integration tests (alternatively `e2e`)
-    │   │   └── File3               # Unit tests
-    │   ├── File2                 # End-to-end, integration tests (alternatively `e2e`)
-    │   │   ├── File1               # Load and stress tests
-    │   │   ├── File2               # End-to-end, integration tests (alternatively `e2e`)
-    │   │   └── File3               # Unit tests
-    │   └── File3                 # Unit tests
-    │       ├── File1               # Load and stress tests
-    │       ├── File2               # End-to-end, integration tests (alternatively `e2e`)
-    │       └── File3               # Unit tests
+    │   ├── Dataset                     # Datset access
+    │   ├── Drugs                       # Drug data taken from chartevents table
+    │   ├── Medication                  # Medication data from inputevents_mv (Metavision) table
+    │   ├── Medication-Regression       # Medication data from inputevents_mv (Metavision) table + Regression done to perform analysis
+    │   ├── Prescription                # Prescription data from prescription table
+    │   └── Others                      # MIMIC Extract and Other analysis
     └── README.md
 
 ## Dataset
