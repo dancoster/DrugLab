@@ -31,8 +31,8 @@ Drive Link to CSV Files : https://drive.google.com/drive/folders/1GVhYml7dnjQpYC
 
     .
     ├── Drugs                           # Drugs Table related results 
-    │   ├── Retrieval                                        
-    │   └── Significant                           
+    │   ├── Retrieval                       # Data retrieved and ttest performed                 
+    │   └── Significant                     # Significant Drug-Labtest pairs      
     └── Medication                      # Medication Table related results 
         ├── Retieval-NoRandomSelection      # Data taken without random selection
         ├── Retieval-RandomSelection        # Data retrieved with random selection and ttest results generated
