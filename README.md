@@ -1,7 +1,7 @@
-# Drug-Lab
-Repository for drug<>lab-test pair.
+# Medication-Labtests
+Repository for medication<>lab-test pair.
 
-`Note: Still Updating the README file1
+`Note: Still Updating the README file`
 
 ## Directory Structure
 
@@ -25,6 +25,7 @@ Repository for drug<>lab-test pair.
 
 ## Dataset
 Drive Link to Datasets : https://drive.google.com/drive/folders/1KGo8IhGQDtQEUW5tfUzqQMpsvy3yE9uf?usp=sharing
+
     .
     ├── eicu-crd                    # eICU-CRD Dataset
     ├── mimiciii                    # MIMIC-III Dataset
