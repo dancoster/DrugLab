@@ -8,7 +8,7 @@ Repository for medication<>lab-test pair.
     .
     ├── docs                    # Documentation files (Will update shortly)
     ├── sql_queries             # SQL Queries used to read from MIMIC-III Postgre SQL Database
-    ├── src                     # Source files (Notebooks with code)
+    ├── notebooks                     # Source files (Notebooks with code)
     │   ├── Dataset                     # Datset access
     │   ├── Drugs                       # Drug data taken from chartevents table
     │   ├── Medication                  # Medication data from inputevents_mv (Metavision) table
