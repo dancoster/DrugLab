@@ -6,15 +6,23 @@ Repository for medication<>lab-test pair.
 ## Directory Structure
 
     .
+    ├── data                    # Datasets - Not pushed (Drive link in [dataset section](##Dataset))
     ├── docs                    # Documentation files (Will update shortly)
-    ├── sql_queries             # SQL Queries used to read from MIMIC-III Postgre SQL Database
-    ├── notebooks                     # Source files (Notebooks with code)
+    ├── notebooks                     # Notebook files
     │   ├── Dataset                     # Datset access
     │   ├── Drugs                       # Drug data taken from chartevents table
     │   ├── Medication                  # Medication data from inputevents_mv (Metavision) table
     │   ├── Medication-Regression       # Medication data from inputevents_mv (Metavision) table + Regression done to perform analysis
     │   ├── Prescription                # Prescription data from prescription table
     │   └── Others                      # MIMIC Extract and Other analysis
+    ├── plots                   # Plots for data analysis and visualization (Older plots on drive - check [plots section](##Plots))
+    ├── pipeline                # Automation pipelines and scripts
+    ├── sql_queries             # SQL Queries used to read from MIMIC-III Postgre SQL Database
+    ├── src                     # Source Code 
+    │   ├── preprocessing               # Data Preprocessing
+    │   ├── analysia                    # Data Analysis
+    │   ├── modeling                    # Data Modeling
+    │   └── visualization               # Visualization of data analysis
     └── README.md
 
 ## Dataset
