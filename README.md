@@ -14,15 +14,19 @@ Repository for medication<>lab-test pair.
     │   ├── Medication                  # Medication data from inputevents_mv (Metavision) table
     │   ├── Medication-Regression       # Medication data from inputevents_mv (Metavision) table + Regression done to perform analysis
     │   ├── Prescription                # Prescription data from prescription table
-    │   └── Others                      # MIMIC Extract and Other analysis
+    │   ├── Others                      # MIMIC Extract and Other analysis
+    |   └── sql_queries                 # SQL Queries used to read from MIMIC-III Postgre SQL
+    ├── pipeline                # Automation pipelines and scripts Database
     ├── plots                   # Plots for data analysis and visualization (Older plots on drive - check [plots section](##Plots))
-    ├── pipeline                # Automation pipelines and scripts
-    ├── sql_queries             # SQL Queries used to read from MIMIC-III Postgre SQL Database
     ├── src                     # Source Code 
     │   ├── preprocessing               # Data Preprocessing
-    │   ├── analysia                    # Data Analysis
+    |   |   └── preprocess.py             # Data Loading and preprocessing class
+    │   ├── analysis                    # Data Analysis
+    |   |   ├── inputevents_analysis.py   # Inputevents table - Before and After, regression and trend analysis
+    |   |   ├── presc_analysis.py         # Prescriptions table - Before and After, regression and trend analysis
     │   ├── modeling                    # Data Modeling
-    │   └── visualization               # Visualization of data analysis
+    │   └── visualize                   # Visualization of data analysis
+    ├── results                 # Results 
     └── README.md
 
 ## Dataset
