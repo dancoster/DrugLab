@@ -31,31 +31,12 @@ class Analysis:
         finalDF, before, after = Analysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total', type=table)
 
         ## Final Results - Reading before and after, regression and trend
-        res = self.results_analysis(patient_presc, lab_measurements, meds, n_subs, n_meds, window)
+        res = self.results_analysis(patient_presc, lab_measurements, meds, n_medlab_pairs = n_subs, n_meds=n_meds, window=window)
 
         # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         suffix = f'p{str(n_subs)}_m{str(n_meds)}_w{str(window[0])}-{str(window[1])}'
 
         res.to_csv(os.path.join(self.RESULTS, f'{table}_before_after_interpolation_trend_{suffix}.csv'))
-
-    def reg_trend_analysis(self, patient_presc,lab_measurements, meds, n_medlab_pairs = 200, n_meds=50, window=(1,72)):
-        uniqueLabTests = lab_measurements['LABEL'].unique()
-        final_res = []
-        after_vals = []
-
-        for i, med in enumerate(meds['MED']):
-            temp_med = meds[meds['MED']==med]
-            if temp_med['COUNT'].iloc[0]<n_meds:
-                break
-            print(i, ' MED: ', med)
-            for j in tqdm(range(uniqueLabTests.shape[0])):
-                labTest = uniqueLabTests[j]
-                row = self.reg_trend_generator(med, patient_presc, lab_measurements, labTest, n_medlab_pairs, window=window)
-                if row is not None:
-                    final_res.append(row)
-                
-        return pd.DataFrame(final_res, columns=['Medication','Lab Test', 'Number of patients', 'Estimated (mean)','Estimated (std)', 'Lab Test After(mean)','Lab Test After(std)','Time After(mean)','Time After(std)', 'Ttest-pvalue', 'Mannwhitney-pvalue', 'Before','After','Coef-Ttest-pvalue', 'Coef-Mannwhitney-pvalue'])
-
  
     def results_generator(self, med, patient_presc, lab_measurements, labTest, n_medlab_pairs=2000, window=(1,72)):
         drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, type=self.type, window=window)
@@ -96,7 +77,7 @@ class Analysis:
         
         return None
 
-    def results_analysis(self, patient_presc, lab_measurements, meds, n_medlab_pairs = 25, n_meds=50):
+    def results_analysis(self, patient_presc, lab_measurements, meds, n_medlab_pairs = 200, n_meds=50, window=(1,72)):
         uniqueLabTests = lab_measurements.LABEL.unique()
         final_res = []
         after_vals = []
@@ -108,7 +89,7 @@ class Analysis:
             print(i, ' MED: ', med)
             for j in tqdm(range(uniqueLabTests.shape[0])):
                 labTest = uniqueLabTests[j]
-                row = self.results_generator(med, patient_presc, lab_measurements, labTest, n_medlab_pairs)
+                row = self.results_generator(med, patient_presc, lab_measurements, labTest, n_medlab_pairs, window)
                 if row is not None:
                     final_res.append(row)
         return pd.DataFrame(final_res, columns=['Medication','Lab Test', 'Number of patients', 'MSE', 'RMSE', 'Lab Test Before(mean)','Lab Test Before(std)','Time Before(mean)','Time Before(std)', 'Estimated (mean)','Estimated (std)', 'Lab Test After(mean)','Lab Test After(std)','Time After(mean)','Time After(std)', 'Absolute-Ttest-pvalue', 'Absolute-Mannwhitney-pvalue', 'Ttest-pvalue', 'Mannwhitney-pvalue', 'Before','After', 'Coef-Ttest-pvalue', 'Coef-Mannwhitney-pvalue'])
