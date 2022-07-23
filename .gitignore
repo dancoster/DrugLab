@@ -2,3 +2,5 @@ Pipfile
 Pipfile.lock
 *.pyc
 data/mimiciii/1.4
+*__pyache__
+venv/

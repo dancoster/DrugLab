@@ -23,6 +23,17 @@ def main(args, BASE_DIR):
     # Load dataset
     data = Dataset('mimiciii', data_path)
 
+    # Analysis
+    inputevents_analysis = InputeventsDataAnalysis(results_path)
+    inputevents_analysis.analyse()
+
+    # Analysis
+    prescriptions_analysis = PrescriptionsDataAnalysis(results_path)
+    prescriptions_analysis.analyse()
+
+    # Visualize
+    
+
 if __name__=="__main__":    
     
     BASE_DIR = os.path.dirname(os.getcwd())

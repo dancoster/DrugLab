@@ -3,16 +3,16 @@
 # Regression-Medication-Labtest_Pairs_Retrieval-5.ipynb
 #     https://colab.research.google.com/drive/14H2102C8R0F2SWpoJewNwebX3wVkpfo_
 
-import pandas as pd
-import datetime
-import random
-import numpy as np
+# import pandas as pd
+# import datetime
+# import random
+# import numpy as np
 # from scipy.stats import mannwhitneyu
 # from scipy import stats
 # from tqdm import tqdm
-import os
-import gzip
-import csv
+# import os
+# import gzip
+# import csv
 # from tqdm import tqdm
 # import matplotlib.pyplot as plt
 # from sklearn import datasets, linear_model, metrics
@@ -23,10 +23,10 @@ class InputeventsDataAnalysis:
     def __init__(self, path):
         self.RESULTS = path
 
-    def run(self, data_type):
+    def analyse(self, data_type):
 
         ## Generating Lab Test<>Meds Pairings
-        finalDF, before, after = labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total')
+        finalDF, before, after = InputeventsDataAnalysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total')
 
         ## Final Results - Reading before and after
         res = self.before_after_generator(lab_measurements, top200_meds[:60], 200)
@@ -36,6 +36,7 @@ class InputeventsDataAnalysis:
         final_res_df = self.reg_trend_generator(lab_measurements, top200_meds[:60], n_medlab_pairs = 200)
         final_res_df.to_csv(os.path.join(self.RESULTS, 'inputevents_regression_trend.csv'))
 
+    @staticmethod
     def labpairing(self, medname, prescdf, labdf, labname, k=3):
         '''
         Generating Lab Test<>Meds Pairings. Pairs the drug input with each lab test
@@ -118,7 +119,7 @@ class InputeventsDataAnalysis:
         csvrow=[lengthofdf,df_before_mean,df_before_std,df_before_time_mean,df_before_time_std,df_after_mean,df_after_std,df_after_time_mean,df_after_time_std,ttestpvalue, mannwhitneyu]
         return csvrow
 
-     def before_after_generator(self, lab_measurements, top100_drugs, n_druglab_pairs = 25, n_drugs=None):
+    def before_after_generator(self, lab_measurements, top100_drugs, n_druglab_pairs = 25, n_drugs=None):
         '''
         Final Results - Before and After
         '''
@@ -131,7 +132,7 @@ class InputeventsDataAnalysis:
             print(i, ' Medication: ', drug)
             for j in range(uniqueLabTests.shape[0]):
                 labTest = uniqueLabTests[j]
-                drug_lab, after1, before1 = labpairing(drug, patient_presc, lab_measurements, labTest)
+                drug_lab, after1, before1 = InputeventsDataAnalysis.labpairing(drug, patient_presc, lab_measurements, labTest)
                 if(len(drug_lab) > n_druglab_pairs): 
                     csvrow=self.postprocessing(drug_lab)
                     csvrow.insert(0, drug) 
@@ -186,7 +187,7 @@ class InputeventsDataAnalysis:
         final_res = []
         after_vals = []
 
-        drug_lab, before, after = labpairing(med, presc, lab_measurements, labTest)
+        drug_lab, before, after = InputeventsDataAnalysis.labpairing(med, presc, lab_measurements, labTest)
         subjects = before['SUBJECT_ID'].unique()
         if(len(before) > n_medlab_pairs):
             before_reg_anal_res, before_lab_vals, before_time = self.gen_estimate_coef(subjects, before)
