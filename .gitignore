@@ -5,3 +5,4 @@ data/mimiciii/1.4
 *__pyache__
 venv/
 data/preprocessed/mimic_dataset.obj
+data/
