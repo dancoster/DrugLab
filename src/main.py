@@ -37,7 +37,7 @@ def get_arg_val(arg, args, k=1):
             return val
     return None
 
-def config_args(args, BASE_DIR. DATA):
+def config_args(args, BASE_DIR, DATA):
 
     config = dict()
 
@@ -49,11 +49,17 @@ def config_args(args, BASE_DIR. DATA):
     if config['results_path'] is None:
         config['results_path'] = BASE_DIR+'/results'
 
-    config['n_meds'] = int(get_arg_val('--meds', args))
+    config['n_meds'] = get_arg_val('--meds', args)
     if config['n_meds'] is None:
         config['n_meds'] = 50
+    config['n_meds'] = int(config['n_meds'])
 
-    config['window'] = get_arg_val('--config['window']', args, k=2)
+    config['n_sub_pairs'] = get_arg_val('--sub-pairs', args)
+    if config['n_sub_pairs'] is None:
+        config['n_sub_pairs'] = 50
+    config['n_sub_pairs'] = int(config['n_sub_pairs'])
+
+    config['window'] = get_arg_val('--window', args, k=2)
     if config['window'] is None:
         config['window'] = (1,24)
     else:
@@ -88,26 +94,29 @@ def main(args, BASE_DIR):
     logger.info(f'Done loading dataset.')
 
     # # Analysis
-    # logger.info(f'Started inputevents data analysis...')
-    # inp_path = os.path.join(config['results_path'], 'inputevents')
-    # inputevents_analysis = IEDataAnalysis(inp_path, data)
-    # inputevents_analysis.analyse(config['n_meds']=config['n_meds'])
-    # logger.info(f'Done analyzing inputevents data. Results can be found in {inp_path} directory.')
+    if '-i' in args:
+        logger.info(f'Started inputevents data analysis...')
+        inp_path = os.path.join(config['results_path'], 'inputevents')
+        inputevents_analysis = IEDataAnalysis(inp_path, data)
+        inputevents_analysis.analyse(n_meds=config['n_meds'], n_subs=config['n_sub_pairs'], window=config['window'])
+        logger.info(f'Done analyzing inputevents data. Results can be found in {inp_path} directory.')
 
     # # Analysis
-    # logger.info(f'Started prescriptions data analysis...')
-    # pres_path = os.path.join(config['results_path'], 'prescriptions')
-    # prescriptions_analysis = PRDataAnalysis(pres_path, data)
-    # prescriptions_analysis.analyse(config['n_meds']=config['n_meds'])
-    # logger.info(f'Done analyzing prescriptions data. Results can be found in {pres_path} directory.')
+    if '-p' in args:
+        logger.info(f'Started prescriptions data analysis...')
+        pres_path = os.path.join(config['results_path'], 'prescriptions')
+        prescriptions_analysis = PRDataAnalysis(pres_path, data)
+        prescriptions_analysis.analyse(n_meds=config['n_meds'], n_subs=config['n_sub_pairs'], window=config['window'])
+        logger.info(f'Done analyzing prescriptions data. Results can be found in {pres_path} directory.')
 
     # Visualize
-    logger.info(f'Started visualizing results of data analysis...')
-    plot_module = TimeEffectVisualization('Insulin - Regular', 'Glucose', BASE_DIR, data)
-    plot_module.visualize(config['window']=config['window'])
-    logger.info(f'Done visualizing.')
+    if '-v' in args:
+        logger.info(f'Started visualizing results of data analysis...')
+        plot_module = TimeEffectVisualization('Insulin - Regular', 'Glucose', BASE_DIR, data)
+        plot_module.visualize(window=config['window'])
+        logger.info(f'Done visualizing.')
     
 
 if __name__=="__main__":    
-    BASE_DIR = os.path.dirname(os.getcwd())
+    BASE_DIR = os.getcwd()
     main(sys.argv, BASE_DIR)

@@ -16,16 +16,13 @@ from analysis.analysis import Analysis
 
 logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class: %(name)s Func: %(funcName)s] %(levelname)s : %(message)s')
 
-class IEDataAnalysis:
+class IEDataAnalysis(Analysis):
 
-
-    def __init__(self, path, dataset, type):
+    def __init__(self, path, dataset):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.RESULTS = path
-        self.data = dataset
-        self.type = type
+        Analysis.__init__(self, path, dataset, 'inputevents')
 
-    def analyse(self, table='inputevents', n_subs=200, n_meds=50):
+    def analyse_custom(self, table='inputevents', n_subs=200, n_meds=50):
 
         patient_presc = self.data.patient_presc[table]
         lab_measurements = self.data.lab_measurements[table]
@@ -54,8 +51,13 @@ class IEDataAnalysis:
         '''
         Before and After statistical test values.
         '''        
-        drug_lab, before1, after1 = Analysis.labpairing(drug, patient_presc, lab_measurements, labTest)
-        if(len(drug_lab) > n_druglab_pairs): 
+        drug_lab, before, after = Analysis.labpairing(drug, patient_presc, lab_measurements, labTest)
+        
+        num = drug_lab['SUBJECT_ID'].unique().shape[0]
+        before_num = before['SUBJECT_ID'].unique().shape[0]
+        after_num = after['SUBJECT_ID'].unique().shape[0]
+        
+        if num > n_druglab_pairs and before_num > (0.25*n_druglab_pairs) and after_num > (0.25*n_druglab_pairs): 
             
             drug_lab['timeFromPrescription_x'] = pd.to_numeric(drug_lab['timeFromPrescription_x'].dt.seconds)
             drug_lab['timeFromPrescription_x']/=3600
@@ -73,7 +75,7 @@ class IEDataAnalysis:
             ttestpvalue = stats.ttest_ind(drug_lab['VALUENUM_x'], drug_lab['VALUENUM_y'])[1]
             mannwhitneyu = stats.mannwhitneyu(drug_lab['VALUENUM_x'], drug_lab['VALUENUM_y'])[1]
             
-            lengthofdf = len(drug_lab)
+            lengthofdf = num
             csvrow = [lengthofdf,df_before_mean,df_before_std,df_before_time_mean,df_before_time_std,df_after_mean,df_after_std,df_after_time_mean,df_after_time_std,ttestpvalue, mannwhitneyu]
             return csvrow
         return None
@@ -86,7 +88,8 @@ class IEDataAnalysis:
         uniqueLabTests = lab_measurements.LABEL.unique()
 
         for i, drug in enumerate(meds['MED']): 
-            if n_drugs is not None and i>=n_drugs:
+            temp_med = meds[meds['MED']==med]
+            if temp_med['COUNT'].iloc[0]<n_drugs:
                 break
             print(i, ' Medication: ', drug)
             for j in tqdm(range(uniqueLabTests.shape[0])):
@@ -108,13 +111,19 @@ class IEDataAnalysis:
 
         drug_lab, before, after = Analysis.labpairing(med, presc, lab_measurements, labTest)
         subjects = before['SUBJECT_ID'].unique()
-        if(len(subjects) > n_medlab_pairs):
+        
+        num = drug_lab['SUBJECT_ID'].unique().shape[0]
+        before_num = before['SUBJECT_ID'].unique().shape[0]
+        after_num = after['SUBJECT_ID'].unique().shape[0]
+        
+        if num > n_medlab_pairs and before_num > (0.25*n_medlab_pairs) and after_num > (0.25*n_medlab_pairs): 
+            
             before_reg_anal_res, before_lab_vals, before_time = Analysis.interpolation(subjects, before)
             after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after)
             estimated = np.array(pd.DataFrame(before_reg_anal_res)['estimated'])
             
-            before_values = np.array([k.mean() for k in before_lab_vals])
-            after_values = np.array([k.mean() for k in after_lab_vals])
+            before_values = np.array([list(k)[-1] for k in before_lab_vals])
+            after_values = np.array([list(k)[0] for k in after_lab_vals])
 
             # Befoer and after absolute values
             ttest_res0 = stats.ttest_ind(estimated, before_values)[1]
@@ -130,25 +139,6 @@ class IEDataAnalysis:
             ttest_res1 = stats.ttest_ind(before_values1, after_values1)[1]
             mannwhitneyu_res1 = stats.mannwhitneyu(before_values1, after_values1)[1]
 
-            return [med, labTest, len(subjects), np.mean(estimated), np.std(estimated), np.mean(after_values), np.std(after_values), np.mean(np.array([k.mean() for k in after_time])), np.std(np.array([k.mean() for k in after_time])), ttest_res0, mannwhitneyu_res0, ttest_res, mannwhitneyu_res, np.mean(before_values1), np.mean(after_values1), ttest_res1, mannwhitneyu_res1]
+            return [med, labTest, num, np.mean(estimated), np.std(estimated), np.mean(after_values), np.std(after_values), np.mean(np.array([k.mean() for k in after_time])), np.std(np.array([k.mean() for k in after_time])), ttest_res0, mannwhitneyu_res0, ttest_res, mannwhitneyu_res, np.mean(before_values1), np.mean(after_values1), ttest_res1, mannwhitneyu_res1]
         
         return None
-    
-    def reg_trend_analysis(self, patient_presc,lab_measurements, meds, n_medlab_pairs = 200, n_meds=None):
-        uniqueLabTests = lab_measurements['LABEL'].unique()
-        final_res = []
-        after_vals = []
-
-        for i, med in enumerate(meds['MED']): 
-            if n_meds is not None and i>=n_meds:
-                break
-            print(i, ' MED: ', med)
-            for j in tqdm(range(uniqueLabTests.shape[0])):
-                labTest = uniqueLabTests[j]
-                row = self.reg_trend_generator(med, patient_presc, lab_measurements, labTest, 200)
-                if row is not None:
-                    final_res.append(row)
-                
-        return pd.DataFrame(final_res, columns=['Medication','Lab Test', 'Number of patients', 'Estimated (mean)','Estimated (std)', 'Lab Test After(mean)','Lab Test After(std)','Time After(mean)','Time After(std)', 'Ttest-pvalue', 'Mannwhitney-pvalue', 'Before','After','Coef-Ttest-pvalue', 'Coef-Mannwhitney-pvalue'])
-
- 

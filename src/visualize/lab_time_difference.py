@@ -57,8 +57,9 @@ class TimeEffectVisualization:
         percent, time_diff = self.data_collect('percent')
         ratio, time_diff = self.data_collect('ratio')
         
-        time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
-        dirname = self.lab+"<>"+self.presc+"_"+time
+        # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+        suffix = f'w{str(window[0])}-{str(window[1])}'
+        dirname = self.lab+"<>"+self.presc+"_"+suffix
         dirpath = os.path.join(self.BASE_DIR, 'plots', 'inputevents', dirname)
         os.mkdir(dirpath)
 
@@ -66,7 +67,6 @@ class TimeEffectVisualization:
         self.plot_func(absolute1, time_diff3, dirname, window=window, title='Absolute')
 
         percent1, time_diff1 = self.remove_outlier(percent, time_diff)
-        time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         self.plot_func(percent1, time_diff1, dirname, window=window, title='Percentage')
 
         ratio1, time_diff2 = self.remove_outlier(ratio, time_diff)

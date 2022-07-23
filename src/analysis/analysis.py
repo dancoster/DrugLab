@@ -19,7 +19,7 @@ class Analysis:
         self.data = dataset
         self.type = type
 
-    def analyse(self, n_subs=200, n_meds=50):
+    def analyse(self, n_subs=200, n_meds=50, window=(1,72)):
 
         table = self.type
 
@@ -31,18 +31,91 @@ class Analysis:
         finalDF, before, after = Analysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total', type=table)
 
         ## Final Results - Reading before and after, regression and trend
-        res = self.results_analysis(patient_presc, lab_measurements, meds, n_subs, n_meds)
-        time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
-        res.to_csv(os.path.join(self.RESULTS, f'{table}_before_after_interpolation_trend_{time}.csv'))
+        res = self.results_analysis(patient_presc, lab_measurements, meds, n_subs, n_meds, window)
 
-    def results_generator(self, med, presc, lab_measurements, labTest, n_medlab_pairs):
-        pass
+        # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+        suffix = f'p{str(n_subs)}_m{str(n_meds)}_w{str(window[0])}-{str(window[1])}'
 
-    def results_analysis(self, lab_measurements,  patient_presc, meds, n_medlab_pairs, n_meds):
-        pass
+        res.to_csv(os.path.join(self.RESULTS, f'{table}_before_after_interpolation_trend_{suffix}.csv'))
+
+    def reg_trend_analysis(self, patient_presc,lab_measurements, meds, n_medlab_pairs = 200, n_meds=50, window=(1,72)):
+        uniqueLabTests = lab_measurements['LABEL'].unique()
+        final_res = []
+        after_vals = []
+
+        for i, med in enumerate(meds['MED']):
+            temp_med = meds[meds['MED']==med]
+            if temp_med['COUNT'].iloc[0]<n_meds:
+                break
+            print(i, ' MED: ', med)
+            for j in tqdm(range(uniqueLabTests.shape[0])):
+                labTest = uniqueLabTests[j]
+                row = self.reg_trend_generator(med, patient_presc, lab_measurements, labTest, n_medlab_pairs, window=window)
+                if row is not None:
+                    final_res.append(row)
+                
+        return pd.DataFrame(final_res, columns=['Medication','Lab Test', 'Number of patients', 'Estimated (mean)','Estimated (std)', 'Lab Test After(mean)','Lab Test After(std)','Time After(mean)','Time After(std)', 'Ttest-pvalue', 'Mannwhitney-pvalue', 'Before','After','Coef-Ttest-pvalue', 'Coef-Mannwhitney-pvalue'])
+
+ 
+    def results_generator(self, med, patient_presc, lab_measurements, labTest, n_medlab_pairs=2000, window=(1,72)):
+        drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, type=self.type, window=window)
+        subjects = before['SUBJECT_ID'].unique()
+        
+        num = drug_lab['SUBJECT_ID'].unique().shape[0]
+        before_num = before['SUBJECT_ID'].unique().shape[0]
+        after_num = after['SUBJECT_ID'].unique().shape[0]
+        
+        if num > n_medlab_pairs and before_num > (0.25*n_medlab_pairs) and after_num > (0.25*n_medlab_pairs): 
+            
+            before_reg_anal_res, before_lab_vals, before_time = Analysis.interpolation(subjects, before)
+            after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after)
+            estimated = np.array(pd.DataFrame(before_reg_anal_res)['estimated'])
+
+            before_values = np.array([list(k)[-1] for k in before_lab_vals])
+            after_values = np.array([list(k)[0] for k in after_lab_vals])
+
+            # Absolute - Befoer and after absolute values
+            ttest_res0 = stats.ttest_ind(before_values, after_values)[1]
+            mannwhitneyu_res0 = stats.mannwhitneyu(before_values, after_values)[1]
+
+            # mse
+            mse = metrics.mean_squared_error(before_values, estimated)
+            rmse = metrics.mean_squared_error(before_values, estimated, squared=False)
+
+            # Interpolated - Estimated value after regression and after medication absolute values
+            ttest_res = stats.ttest_ind(estimated, after_values)[1]
+            mannwhitneyu_res = stats.mannwhitneyu(estimated, after_values)[1]
+
+            # Trend - Befoer and after regression coefficient values
+            before_values1 = np.array(pd.DataFrame(before_reg_anal_res)['coef'])
+            after_values1 = np.array(pd.DataFrame(after_reg_anal_res)['coef'])
+            ttest_res1 = stats.ttest_ind(before_values1, after_values1)[1]
+            mannwhitneyu_res1 = stats.mannwhitneyu(before_values1, after_values1)[1]
+
+            return [med, labTest, num, mse, rmse, np.mean(before_values), np.std(before_values), np.mean(np.array([list(k)[-1] for k in before_time])), np.std(np.array([list(k)[-1] for k in before_time])), np.mean(estimated), np.std(estimated), np.mean(after_values), np.std(after_values), np.mean(np.array([list(k)[0] for k in after_time])), np.std(np.array([list(k)[0] for k in after_time])), ttest_res0, mannwhitneyu_res0, ttest_res, mannwhitneyu_res, np.mean(before_values1), np.mean(after_values1), ttest_res1, mannwhitneyu_res1]
+        
+        return None
+
+    def results_analysis(self, patient_presc, lab_measurements, meds, n_medlab_pairs = 25, n_meds=50):
+        uniqueLabTests = lab_measurements.LABEL.unique()
+        final_res = []
+        after_vals = []
+
+        for i, med in enumerate(meds['MED']):
+            temp_med = meds[meds['MED']==med]
+            if temp_med['COUNT'].iloc[0]<n_meds:
+                break
+            print(i, ' MED: ', med)
+            for j in tqdm(range(uniqueLabTests.shape[0])):
+                labTest = uniqueLabTests[j]
+                row = self.results_generator(med, patient_presc, lab_measurements, labTest, n_medlab_pairs)
+                if row is not None:
+                    final_res.append(row)
+        return pd.DataFrame(final_res, columns=['Medication','Lab Test', 'Number of patients', 'MSE', 'RMSE', 'Lab Test Before(mean)','Lab Test Before(std)','Time Before(mean)','Time Before(std)', 'Estimated (mean)','Estimated (std)', 'Lab Test After(mean)','Lab Test After(std)','Time After(mean)','Time After(std)', 'Absolute-Ttest-pvalue', 'Absolute-Mannwhitney-pvalue', 'Ttest-pvalue', 'Mannwhitney-pvalue', 'Before','After', 'Coef-Ttest-pvalue', 'Coef-Mannwhitney-pvalue'])
+
 
     @staticmethod
-    def labpairing(medname, prescdf, labdf, labname, k=3, type='inputevents'):
+    def labpairing(medname, prescdf, labdf, labname, window=(1,72), type='inputevents'):
         '''
         Generating Lab Test<>Meds Pairings. Pairs the drug input with each lab test
 
@@ -70,7 +143,19 @@ class Analysis:
 
             # Get time from prescription and choose before and after lab measurements (within k days)
             mergeddf['timeFromPrescription'] = mergeddf['CHARTTIME'] - mergeddf['STARTTIME']
-            mergeddf = mergeddf[(mergeddf['timeFromPrescription']>datetime.timedelta(days=(-1*k))) & (mergeddf['timeFromPrescription']<datetime.timedelta(days=k))]
+            mergeddf = mergeddf[(
+                    (
+                        mergeddf['timeFromPrescription']<datetime.timedelta(hours=(-1*window[0]))
+                    ) & (
+                        mergeddf['timeFromPrescription']>datetime.timedelta(hours=(-1*window[1]))
+                    )
+                ) | (
+                    (
+                        mergeddf['timeFromPrescription']>datetime.timedelta(hours=window[0])
+                    ) & (
+                        mergeddf['timeFromPrescription']<datetime.timedelta(hours=window[1])
+                    )
+                )]
             posmergeddf = mergeddf.loc[mergeddf.timeFromPrescription > datetime.timedelta(hours=0)]
             negmergeddf = mergeddf.loc[mergeddf.timeFromPrescription < datetime.timedelta(hours=0)]
             
@@ -114,7 +199,8 @@ class Analysis:
 
             # Get time from prescription and choose before and after lab measurements (within 24hrs=1day)
             mergeddf['timeFromPrescription'] = mergeddf['CHARTTIME'] - mergeddf['STARTDATE']
-            mergeddf = mergeddf[(mergeddf['timeFromPrescription']>datetime.timedelta(days=(-1*k))) & (mergeddf['timeFromPrescription']<datetime.timedelta(days=k))]
+            mergeddf = mergeddf[(mergeddf['timeFromPrescription']<datetime.timedelta(hours=(-1*window[0]))) & (mergeddf['timeFromPrescription']>datetime.timedelta(hours=(-1*window[1])))]
+            mergeddf = mergeddf[(mergeddf['timeFromPrescription']>datetime.timedelta(hours=window[0])) & (mergeddf['timeFromPrescription']<datetime.timedelta(hours=window[1]))]
             posmergeddf = mergeddf.loc[mergeddf.timeFromPrescription > datetime.timedelta(hours=12)]
             negmergeddf = mergeddf.loc[mergeddf.timeFromPrescription < datetime.timedelta(hours=-12)]
             
@@ -142,7 +228,7 @@ class Analysis:
             finaldf = negmergeddf.merge(posmergeddf,on=['HADM_ID','SUBJECT_ID'])
             
             return finaldf, before, after
-
+    
     ## Regression-Trend Analysis
     @staticmethod
     def get_min(col):
