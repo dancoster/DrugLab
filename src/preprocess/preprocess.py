@@ -17,16 +17,19 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn import datasets, linear_model, metrics
 import logging
+import random
 
+logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class: %(name)s Func: %(funcName)s] %(levelname)s : %(message)s')
 
 class Dataset:
     
-    def __init__(self, name, data_path, preprocessed=True, n_sub=15000, random_seed=10):
+    def __init__(self, name, data_path, preprocessed=None, n_sub=15000, random_seed=10):
         self.name = name    # mimiciii
-        self.DATA = data_path        
-        self.logger = logging.getLogger(__name__)
+        self.DATA = data_path       
+        self.PREPROCESS = preprocessed 
+        self.logger = logging.getLogger(self.__class__.__name__)
 
-        self.logger.info('Started loading data from ', name, ' dataset...')
+        self.logger.info(f'Started loading data from {name} dataset...')
         
         # Choose n random subjects
         self.dob_patient_bins = self.load_data('dob_patient_bins')
@@ -36,24 +39,28 @@ class Dataset:
         # dataset data
         self.admissions = self.load_data('admissions')
         self.labevents = self.load_data('labevents')
+        self.meds = dict()
 
-        if preprocessed:
+        if preprocessed is not None:
             self.inputevents = self.load_data('inputevents_mv_preprocessed')
         else:
             self.inputevents = self.load_data('inputevents')
+        self.meds['inputevents'] = self.load_data('inputevent_meds')
         
-        
-        if preprocessed:
+        if preprocessed is not None:
             self.prescriptions = self.load_data('prescription_preprocessed')
         else:
             self.prescriptions = self.load_data('prescriptions')
+        self.meds['prescriptions'] = self.load_data('prescription_meds')
 
-        self.logger.info('Loaded data from ', name, ' dataset.')
-        self.logger.info('Preprocessing data from ', name, ' dataset...')
+        self.logger.info(f'Loaded data from {name} dataset.')
+        self.logger.info(f'Preprocessing data from {name} dataset...')
         
-        self.patient_presc, self.lab_measurements = self.preprocess()
+        self.patient_presc, self.lab_measurements = dict(), dict()
+        self.patient_presc['inputevents'], self.lab_measurements['inputevents'] = self.preprocess('inputevents')
+        self.patient_presc['prescriptions'], self.lab_measurements['prescriptions'] = self.preprocess('prescriptions')
 
-        self.logger.info('Preprocessed data from ', name, ' dataset.')
+        self.logger.info(f'Preprocessed data from {name} dataset.')
     
     def load_data(self, type):
         '''Load Data'''
@@ -61,13 +68,13 @@ class Dataset:
         ### Admissions
         if type=='admissions':
             try:
-                self.logger.info('Loading ', type, ' data...')
+                self.logger.info(f'Loading {type} data...')
                 admissions = pd.read_csv(os.path.join(self.DATA, 'ADMISSIONS.csv.gz'))
             except FileNotFoundError:
-                self.logger.error('File not found Error in', type)
+                self.logger.error(f'File not found Error in {type}')
                 return None
             else:
-                self.logger.info('Loaded ', type)
+                self.logger.info(f'Loaded {type}')
                 # subject_id,hadm_id
                 admissions = admissions[['SUBJECT_ID', 'HADM_ID']]
                 return admissions
@@ -75,15 +82,15 @@ class Dataset:
         ### Labevents
         if type=='labevents':
             try:
-                self.logger.info('Loading ', type, ' data...')
+                self.logger.info(f'Loading {type} data...')
                 labevents = pd.read_csv(os.path.join(self.DATA, 'LABEVENTS.csv.gz')).dropna()
                 d_labitems = pd.read_csv(os.path.join(self.DATA, 'D_LABITEMS.csv.gz')).dropna()
                 labValues = pd.merge(labevents, d_labitems, on='ITEMID', how='inner')
             except FileNotFoundError:
-                self.logger.error('File not found Error in', type)
+                self.logger.error(f'File not found Error in {type}')
                 return None
             else:
-                self.logger.info('Loaded ', type)
+                self.logger.info(f'Loaded {type}')
                 # subject_id,l.hadm_id, d.label, l.valuenum, l.valueuom, l.charttime
                 labValues = labValues[['SUBJECT_ID', 'HADM_ID', 'LABEL', 'VALUENUM', 'VALUEUOM', 'CHARTTIME']]
 
@@ -93,13 +100,14 @@ class Dataset:
         ### Longitudanal Patient Data
         if type=='dob_patient_bins':
             try:
-                self.logger.info('Loading ', type, ' data...')
-                patients = pd.read_csv(os.path.join(DATA, 'PATIENTS.csv.gz'))
+                # print('Loading ', type, ' data...')
+                self.logger.info(f'Loading {type} data...')
+                patients = pd.read_csv(os.path.join(self.DATA, 'PATIENTS.csv.gz'))
             except:
-                self.logger.error('File not found Error ')
+                self.logger.error(f'File not found Error ')
                 return None
             else:
-                self.logger.info('Loaded ', type)
+                self.logger.info(f'Loaded {type}')
                 patients['DOB'] = pd.to_datetime(patients['DOB'],  format='%Y/%m/%d %H:%M:%S')
                 k = patients.hist('DOB', bins=10, figsize=(12,8))
 
@@ -118,7 +126,7 @@ class Dataset:
         ### Inputevents
         if type=='inputevents_mv':
             try:
-                self.logger.info('Loading ', type, ' data...')
+                self.logger.info(f'Loading {type} data...')
 
                 inputevents_mv = pd.read_csv(os.path.join(self.DATA, 'INPUTEVENTS_MV.csv.gz'), nrows=10)
                 with gzip.open(os.path.join(self.DATA, 'INPUTEVENTS_MV.csv.gz'), 'rb') as fp:
@@ -140,7 +148,7 @@ class Dataset:
                 d_item = pd.read_csv(os.path.join(self.DATA, 'D_ITEMS.csv.gz'))
 
             except FileNotFoundError:
-                self.logger.error('File not found Error ')
+                self.logger.error(f'File not found Error ')
                 return None
             else:
                 for i in ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ITEMID']:
@@ -155,17 +163,17 @@ class Dataset:
                 inputevents_mv_1['STARTTIME'] = pd.to_datetime(inputevents_mv_1['STARTTIME'],  format='%Y/%m/%d %H:%M:%S')
                 inputevents_mv_1['ENDTIME'] = pd.to_datetime(inputevents_mv_1['ENDTIME'],  format='%Y/%m/%d %H:%M:%S')
 
-                self.logger.info('Loaded ', type)
+                self.logger.info(f'Loaded {type}')
 
                 return inputevents_mv_1
         
         ### Preprocessed Inputevents
         if type=='inputevents_mv_preprocessed':
             try:
-                self.logger.info('Loading ', type, ' data...')
-                inputevents_mv1 = pd.read_csv(os.path.join(RESULT, 'inputevents_mv_preprocessed.csv'))
+                self.logger.info(f'Loading {type} data...')
+                inputevents_mv1 = pd.read_csv(os.path.join(self.PREPROCESS, 'inputevents_mv_preprocessed.csv'))
             except FileNotFoundError:
-                self.logger.error('File not found Error ')
+                self.logger.error(f'File not found Error ')
                 return None
             else:
                 inputevents_mv1 = inputevents_mv1.drop(columns=['Unnamed: 0'])
@@ -176,23 +184,37 @@ class Dataset:
                 return inputevents_mv1
 
         ### Meds
-        if type=='meds':
+        if type=='inputevent_meds':
             try:
-                self.logger.info('Loading ', type, ' data...')
-                top200_meds = inputevents_mv_1['LABEL'].value_counts()[:200]
+                self.logger.info(f'Loading {type} data...')
+                meds = self.inputevents['LABEL']
             except:
-                self.logger.error('Error')
+                self.logger.error(f'Error')
                 return None
             else:
-                self.logger.info('Loaded ', type)
-                top200_meds = pd.DataFrame(top200_meds, columns=['LABEL']).reset_index()
-                top200_meds.rename(columns = {'index':'MED', 'LABEL':'COUNT'}, inplace = True)
-                return top200_meds
+                self.logger.info(f'Loaded {type}')
+                meds = pd.DataFrame(meds, columns=['LABEL']).reset_index()
+                meds.rename(columns = {'index':'MED', 'LABEL':'COUNT'}, inplace = True)
+                return meds
+        
+        ### Meds
+        if type=='prescription_meds':
+            try:
+                self.logger.info(f'Loading {type} data...')
+                drugs = self.prescriptions['DRUG']
+            except:
+                self.logger.error(f'Error')
+                return None
+            else:
+                self.logger.info(f'Loaded {type}')
+                drugs = pd.DataFrame(drugs, columns=['DRUG']).reset_index()
+                drugs.rename(columns = {'index':'MED', 'DRUG':'COUNT'}, inplace = True)
+                return drugs
         
         if type=='prescriptions':
             
             try:
-                with gzip.open(os.path.join(DATA, 'PRESCRIPTIONS.csv.gz'), 'rb') as fp:
+                with gzip.open(os.path.join(self.DATA, 'PRESCRIPTIONS.csv.gz'), 'rb') as fp:
                     for i, k in enumerate(fp):
                         pass
                 size = i+1
@@ -200,7 +222,7 @@ class Dataset:
 
                 data = []
                 headers = None
-                with gzip.open(os.path.join(DATA, 'PRESCRIPTIONS.csv.gz'), 'rt') as fp:
+                with gzip.open(os.path.join(self.DATA, 'PRESCRIPTIONS.csv.gz'), 'rt') as fp:
                     reader = csv.reader(fp)
                     headers = next(reader)
                     for line in tqdm(reader, total=size):
@@ -209,7 +231,7 @@ class Dataset:
                 
                 prescriptions = pd.DataFrame(data, columns=headers)
             except:
-                self.logger.error('Error in ', type)
+                self.logger.error(f'Error in {type}')
                 return None
             else:
                 prescriptions['STARTDATE'] = pd.to_datetime(prescriptions['STARTDATE'],  format='%Y/%m/%d %H:%M:%S')
@@ -218,34 +240,22 @@ class Dataset:
                 for i in ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ITEMID']:
                     prescriptions[i] = prescriptions[i].astype('int64')
 
-                self.logger.info('Loaded ', type)
+                self.logger.info(f'Loaded {type}')
 
                 return prescriptions
 
         # preocessed prescription data
         if type=='prescription_preprocessed':
             try:
-                self.logger.info('Loading ', type, ' data...')
-                raise Exception('Pending Implementation')
+                self.logger.info(f'Loading {type} data...')
+                presc = pd.read_csv(os.path.join(self.PREPROCESS, 'prescription_preprocessed.csv'))
             except:
-                self.logger.error('Error')
-                return None
-            else:
-                self.logger.info('Loaded ', type)
-                return presc
-        
-        # preocessed prescription data
-        if type=='prescription_preprocessed':
-            try:
-                self.logger.info('Loading ', type, ' data...')
-                presc = pd.read_csv(os.path.join(RESULT, 'prescription_preprocessed.csv'))
-            except:
-                self.logger.error('Error')
+                self.logger.error(f'Error')
                 return None
             else:
                 presc['STARTDATE'] = pd.to_datetime(presc['STARTDATE'],  format='%Y/%m/%d %H:%M:%S')
                 presc['ENDDATE'] = pd.to_datetime(presc['ENDDATE'],  format='%Y/%m/%d %H:%M:%S')
-                self.logger.info('Loaded ', type)
+                self.logger.info(f'Loaded {type}')
                 return presc
 
     def remove_multiple_admissions(self, df):
@@ -264,22 +274,33 @@ class Dataset:
         df = df[df['HADM_ID'].isin(first_admissions['HADM_ID'])]
         return df
 
-    def preprocess(self):
+    def preprocess(self, type='inputevents'):
         '''Data Preprocessing'''
 
-        self.logger.info('Started Preprocessing data....')
+        self.logger.info(f'Started Preprocessing {type} data....')
 
         lab_measurements = self.labevents
 
-        ### Patient Prescription
-        patient_presc = self.inputevents
-        patient_presc = self.remove_multiple_admissions(patient_presc)
-        patient_presc = self.inputevents[self.inputevents['LABEL'].isin(top200_meds['MED'])]
+        if type=='inputevents':
+            ### Patient Prescription
+            patient_presc = self.inputevents
+            patient_presc = self.remove_multiple_admissions(patient_presc)
+            patient_presc = self.inputevents[self.inputevents['LABEL'].isin(self.meds[type]['MED'])]
 
-        ### Lab Measurements
-        lab_measurements = lab_measurements[lab_measurements.duplicated(subset=['SUBJECT_ID','LABEL'],keep=False)]
-        lab_measurements = lab_measurements[lab_measurements['HADM_ID'].isin(patient_presc['HADM_ID'])]
+            ### Lab Measurements
+            # lab_measurements = lab_measurements[lab_measurements.duplicated(subset=['SUBJECT_ID','LABEL'],keep=False)]
+            lab_measurements = lab_measurements[lab_measurements['HADM_ID'].isin(patient_presc['HADM_ID'])]
 
-        self.logger.info('Processed data loaded to RAM.')
+        if type=='prescriptions':
+            ### Patient Prescription
+            patient_presc = self.prescriptions
+            patient_presc = self.remove_multiple_admissions(patient_presc)
+            patient_presc = self.prescriptions[self.prescriptions['DRUG'].isin(self.meds[type]['MED'])]
+
+            ### Lab Measurements
+            # lab_measurements = lab_measurements[lab_measurements.duplicated(subset=['SUBJECT_ID','LABEL'],keep=False)]
+            lab_measurements = lab_measurements[lab_measurements['HADM_ID'].isin(patient_presc['HADM_ID'])]
+
+        self.logger.info(f'Processed {type} data loaded to RAM.')
 
         return patient_presc, lab_measurements

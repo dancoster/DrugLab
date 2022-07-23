@@ -17,6 +17,7 @@ from sklearn import datasets, linear_model, metrics
 import seaborn as sns
 import logging
 
+logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class: %(name)s Func: %(funcName)s] %(levelname)s : %(message)s')
 
 class TimeEffectVisualization:
     '''
@@ -28,7 +29,7 @@ class TimeEffectVisualization:
         Inputevents and prescription table
         '''
        
-        self.logger = logging.getLogger(__name__) 
+        self.logger = logging.getLogger(self.__class__.__name__) 
         self.BASE_DIR = BASE_DIR
         self.lab = lab
         self.presc = presc
