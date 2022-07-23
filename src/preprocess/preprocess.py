@@ -23,10 +23,9 @@ logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class:
 
 class Dataset:
     
-    def __init__(self, name, data_path, preprocessed=None, n_sub=15000, random_seed=10):
+    def __init__(self, name, data_path, preprocessed=True, n_sub=15000, random_seed=10):
         self.name = name    # mimiciii
-        self.DATA = data_path       
-        self.PREPROCESS = preprocessed 
+        self.DATA = data_path
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.logger.info(f'Started loading data from {name} dataset...')
@@ -41,13 +40,13 @@ class Dataset:
         self.labevents = self.load_data('labevents')
         self.meds = dict()
 
-        if preprocessed is not None:
+        if preprocessed:
             self.inputevents = self.load_data('inputevents_mv_preprocessed')
         else:
             self.inputevents = self.load_data('inputevents')
         self.meds['inputevents'] = self.load_data('inputevent_meds')
         
-        if preprocessed is not None:
+        if preprocessed:
             self.prescriptions = self.load_data('prescription_preprocessed')
         else:
             self.prescriptions = self.load_data('prescriptions')
@@ -69,7 +68,7 @@ class Dataset:
         if type=='admissions':
             try:
                 self.logger.info(f'Loading {type} data...')
-                admissions = pd.read_csv(os.path.join(self.DATA, 'ADMISSIONS.csv.gz'))
+                admissions = pd.read_csv(os.path.join(self.DATA, 'raw', 'ADMISSIONS.csv.gz'))
             except FileNotFoundError:
                 self.logger.error(f'File not found Error in {type}')
                 return None
@@ -83,8 +82,8 @@ class Dataset:
         if type=='labevents':
             try:
                 self.logger.info(f'Loading {type} data...')
-                labevents = pd.read_csv(os.path.join(self.DATA, 'LABEVENTS.csv.gz')).dropna()
-                d_labitems = pd.read_csv(os.path.join(self.DATA, 'D_LABITEMS.csv.gz')).dropna()
+                labevents = pd.read_csv(os.path.join(self.DATA, 'raw', 'LABEVENTS.csv.gz')).dropna()
+                d_labitems = pd.read_csv(os.path.join(self.DATA, 'raw', 'D_LABITEMS.csv.gz')).dropna()
                 labValues = pd.merge(labevents, d_labitems, on='ITEMID', how='inner')
             except FileNotFoundError:
                 self.logger.error(f'File not found Error in {type}')
@@ -102,7 +101,7 @@ class Dataset:
             try:
                 # print('Loading ', type, ' data...')
                 self.logger.info(f'Loading {type} data...')
-                patients = pd.read_csv(os.path.join(self.DATA, 'PATIENTS.csv.gz'))
+                patients = pd.read_csv(os.path.join(self.DATA, 'raw', 'PATIENTS.csv.gz'))
             except:
                 self.logger.error(f'File not found Error ')
                 return None
@@ -128,8 +127,8 @@ class Dataset:
             try:
                 self.logger.info(f'Loading {type} data...')
 
-                inputevents_mv = pd.read_csv(os.path.join(self.DATA, 'INPUTEVENTS_MV.csv.gz'), nrows=10)
-                with gzip.open(os.path.join(self.DATA, 'INPUTEVENTS_MV.csv.gz'), 'rb') as fp:
+                inputevents_mv = pd.read_csv(os.path.join(self.DATA, 'raw', 'INPUTEVENTS_MV.csv.gz'), nrows=10)
+                with gzip.open(os.path.join(self.DATA, 'raw', 'INPUTEVENTS_MV.csv.gz'), 'rb') as fp:
                     for i, k in enumerate(fp):
                         pass
                 size = i+1
@@ -137,7 +136,7 @@ class Dataset:
 
                 data = []
                 headers = None
-                with gzip.open(os.path.join(self.DATA, 'INPUTEVENTS_MV.csv.gz'), 'rt') as fp:
+                with gzip.open(os.path.join(self.DATA, 'raw', 'INPUTEVENTS_MV.csv.gz'), 'rt') as fp:
                     reader = csv.reader(fp)
                     headers = next(reader)
                     for line in reader:
@@ -145,7 +144,7 @@ class Dataset:
                             data.append(line)
                 inputevents_mv_subjects = pd.DataFrame(data, columns=headers)
 
-                d_item = pd.read_csv(os.path.join(self.DATA, 'D_ITEMS.csv.gz'))
+                d_item = pd.read_csv(os.path.join(self.DATA, 'raw', 'D_ITEMS.csv.gz'))
 
             except FileNotFoundError:
                 self.logger.error(f'File not found Error ')
@@ -171,7 +170,7 @@ class Dataset:
         if type=='inputevents_mv_preprocessed':
             try:
                 self.logger.info(f'Loading {type} data...')
-                inputevents_mv1 = pd.read_csv(os.path.join(self.PREPROCESS, 'inputevents_mv_preprocessed.csv'))
+                inputevents_mv1 = pd.read_csv(os.path.join(self.DATA, 'preprocessed',  'inputevents_mv_preprocessed.csv'))
             except FileNotFoundError:
                 self.logger.error(f'File not found Error ')
                 return None
@@ -187,13 +186,12 @@ class Dataset:
         if type=='inputevent_meds':
             try:
                 self.logger.info(f'Loading {type} data...')
-                meds = self.inputevents['LABEL']
+                meds = self.inputevents.groupby(['LABEL', 'SUBJECT_ID']).count().reset_index()['LABEL'].value_counts().reset_index()
             except:
                 self.logger.error(f'Error')
                 return None
             else:
                 self.logger.info(f'Loaded {type}')
-                meds = pd.DataFrame(meds, columns=['LABEL']).reset_index()
                 meds.rename(columns = {'index':'MED', 'LABEL':'COUNT'}, inplace = True)
                 return meds
         
@@ -201,20 +199,20 @@ class Dataset:
         if type=='prescription_meds':
             try:
                 self.logger.info(f'Loading {type} data...')
-                drugs = self.prescriptions['DRUG']
+                drugs = self.prescriptions.groupby(['DRUG', 'SUBJECT_ID']).count().reset_index()['DRUG'].value_counts().reset_index()
+
             except:
                 self.logger.error(f'Error')
                 return None
             else:
                 self.logger.info(f'Loaded {type}')
-                drugs = pd.DataFrame(drugs, columns=['DRUG']).reset_index()
                 drugs.rename(columns = {'index':'MED', 'DRUG':'COUNT'}, inplace = True)
                 return drugs
         
         if type=='prescriptions':
             
             try:
-                with gzip.open(os.path.join(self.DATA, 'PRESCRIPTIONS.csv.gz'), 'rb') as fp:
+                with gzip.open(os.path.join(self.DATA, 'raw', 'PRESCRIPTIONS.csv.gz'), 'rb') as fp:
                     for i, k in enumerate(fp):
                         pass
                 size = i+1
@@ -222,7 +220,7 @@ class Dataset:
 
                 data = []
                 headers = None
-                with gzip.open(os.path.join(self.DATA, 'PRESCRIPTIONS.csv.gz'), 'rt') as fp:
+                with gzip.open(os.path.join(self.DATA, 'raw', 'PRESCRIPTIONS.csv.gz'), 'rt') as fp:
                     reader = csv.reader(fp)
                     headers = next(reader)
                     for line in tqdm(reader, total=size):
@@ -248,7 +246,7 @@ class Dataset:
         if type=='prescription_preprocessed':
             try:
                 self.logger.info(f'Loading {type} data...')
-                presc = pd.read_csv(os.path.join(self.PREPROCESS, 'prescription_preprocessed.csv'))
+                presc = pd.read_csv(os.path.join(self.DATA, 'preprocessed',  'prescription_preprocessed.csv'))
             except:
                 self.logger.error(f'Error')
                 return None
