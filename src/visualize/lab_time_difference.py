@@ -1,8 +1,3 @@
-# Medication-Labtest Pairs Retieval and T-Test P-values
-# Original file is located at
-# Regression-Medication-Labtest_Pairs_Retrieval-5.ipynb
-#     https://colab.research.google.com/drive/14H2102C8R0F2SWpoJewNwebX3wVkpfo_
-
 import pandas as pd
 import datetime
 import random
@@ -16,6 +11,7 @@ import matplotlib.pyplot as plt
 from sklearn import datasets, linear_model, metrics
 import seaborn as sns
 import logging
+from analysis.analysis import Analysis
 
 logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class: %(name)s Func: %(funcName)s] %(levelname)s : %(message)s')
 
@@ -24,50 +20,59 @@ class TimeEffectVisualization:
     Lab VS Time difference Plot
     '''
 
-    def __init__(self, lab, presc, BASE_DIR, dataset, data_table='inputevents'):
+    def __init__(self, presc, lab, BASE_DIR, dataset, data_table='inputevents'):
         '''
         Inputevents and prescription table
-        '''
-       
+        '''       
         self.logger = logging.getLogger(self.__class__.__name__) 
         self.BASE_DIR = BASE_DIR
+        self.plots_path = os.path.join(self.BASE_DIR, 'plots')
         self.lab = lab
         self.presc = presc
     
         self.data_table = data_table
         
         self.data = dataset
-        self.lab_measurements = self.data.lab_measurements
 
         if data_table=='inputevents':
-            self.patient_presc = self.data.patient_presc
-            self.meds = self.data.patient_presc['LABEL'].value_counts()[:20]
+            self.patient_presc = self.data.patient_presc[data_table]
+            self.lab_measurements = self.data.lab_measurements[data_table]
+            self.meds = self.data.meds[data_table][:20]
         elif data_table=='prescriptions':
-            self.patient_presc = self.data.patient_presc
-            self.meds = self.data.patient_presc['LABEL'].value_counts()[:20]
+            self.patient_presc = self.data.patient_presc[data_table]
+            self.lab_measurements = self.data.lab_measurements[data_table]
+            self.meds = self.data.meds[data_table][:20]
 
 
-    def visualize(self, path='plots'):
+    def visualize(self, path=None):
         '''
         Visualize and plotting
         '''
-
-        comp_path = os.path.join(self.BASE_DIR, path)
+        
+        comp_path = self.plots_path
+        if path is not None:
+            comp_path = path
         
         absolute, time_diff = self.data_collect('absolute')
         percent, time_diff = self.data_collect('percent')
         ratio, time_diff = self.data_collect('ratio')
+        
+        time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+        dirname = self.lab+"<>"+self.presc+"_"+time
+        dirpath = os.path.join(self.BASE_DIR, 'plots', 'inputevents', dirname)
+        os.mkdir(dirpath)
 
         absolute1, time_diff3 = self.remove_outlier(absolute, time_diff)
-        self.plot_func(absolute1, time_diff3, '', 'Absolute')
+        self.plot_func(absolute1, time_diff3, dirname, title='Absolute')
 
         percent1, time_diff1 = self.remove_outlier(percent, time_diff)
-        self.plot_func(percent1, time_diff1, 'Percentage')
+        time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+        self.plot_func(percent1, time_diff1, dirname, title='Percentage')
 
         ratio1, time_diff2 = self.remove_outlier(ratio, time_diff)
-        self.plot_func(ratio1, time_diff2, 'Ratio')
+        self.plot_func(ratio1, time_diff2, dirname, title='Ratio')
 
-    def interpolation(self, drug_lab, before1):
+    def interpolation(self, subjects, before1):
         reg_anal_res = []
         lab_vals = []
         time = []
@@ -106,9 +111,10 @@ class TimeEffectVisualization:
 
         # 'Insulin - Regular'
         # 'Glucose'
-        drug_lab, before1, after1 = self.labpairing(self.presc, patient_presc, lab_measurements, self.lab)
+        drug_lab, before1, after1 = Analysis.labpairing(self.presc, self.patient_presc, self.lab_measurements, self.lab)
+        subjects = list(drug_lab['SUBJECT_ID'].unique())
 
-        reg_anal_res = self.interpolation(drug_lab, before1)
+        reg_anal_res, _, _ = Analysis.interpolation(subjects, before1)
 
         e = pd.DataFrame(reg_anal_res)
         e = e.rename(columns={'subjectID':'SUBJECT_ID'})
@@ -150,36 +156,40 @@ class TimeEffectVisualization:
     def remove_outlier(self, val, time_diff):
         val = pd.DataFrame(val)
         time_diff = pd.DataFrame(time_diff)
-        # IQR
-        Q1 = np.percentile(val, 25,
-                        interpolation = 'midpoint')
         
-        Q3 = np.percentile(val, 75,
-                        interpolation = 'midpoint')
-        IQR = Q3 - Q1
+        # IQR
+        Q1 = np.percentile(val, 25, interpolation = 'midpoint')        
+        Q3 = np.percentile(val, 75, interpolation = 'midpoint')
+        IQR = Q3 - Q1        
         
         # Upper bound
         upper = np.where(val >= (Q3+1.5*IQR))
         # Lower bound
         lower = np.where(val <= (Q1-1.5*IQR))
+
+        # Filtering
         val.drop(upper[0], inplace = True)
         time_diff.drop(upper[0], inplace = True)
         val.drop(lower[0], inplace = True)
         time_diff.drop(lower[0], inplace = True)
         return val, time_diff
 
-    def plot_func(self, absolute, time_diff, title='', unit='mg/dL'):
+    def plot_func(self, absolute, time_diff, dirname, window=(1,24), title='', unit='mg/dL'):
         plot_data = pd.concat([absolute, time_diff], axis=1)
         plot_data = plot_data.rename(columns={0:'Lab values'})
-        plot_data = plot_data[plot_data['timeFromPrescription']>1 & plot_data['timeFromPrescription']<24]
+
+        plot_data = plot_data[plot_data['timeFromPrescription'] > window[0]]
+        plot_data = plot_data[plot_data['timeFromPrescription'] < window[1]]
+
         sns.regplot(x = "timeFromPrescription", 
                 y = 'Lab values', 
                 data = plot_data, 
                 truncate=False)
-        plt.title(self.lab+'<>'+self.presc+'- '+ title+ ' change in lab measurment and time taken for change')
+        plt.title(self.lab+'<>'+self.presc+'- '+ title+ ' \nchange in lab measurment and time taken for change')
         plt.xlabel('Time in hours')
         plt.ylabel(self.lab+' Levels ('+unit+')')
-        plt.savefig(os.path.join(self.BASE_DIR, 'plots', 'inputevents', self.lab+"<>"+self.presc+".png"))
+        plt.savefig(os.path.join(self.BASE_DIR, 'plots', 'inputevents', dirname, title+".png"))
+        plt.clf()
     
     def labpairing(self, medname, prescdf, labdf, labname, k=3):
         '''
@@ -281,11 +291,6 @@ class TimeEffectVisualization:
             finaldf = negmergeddf.merge(posmergeddf,on=['HADM_ID','SUBJECT_ID'])
             
             return finaldf, before, after
-
-
-if __name__=="__main__":
-    print('Enter')
-    TimeEffectVisualization('G', 's', 'k')
 
 # ## Prescriptions
 

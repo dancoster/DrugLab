@@ -1,15 +1,15 @@
 import os, sys
 from preprocess.preprocess import Dataset
-from analysis.inputevents_analysis import InputeventsDataAnalysis
-from analysis.prescriptions_analysis import PrescriptionsDataAnalysis
+from analysis.inputevents_analysis import IEDataAnalysis
+from analysis.prescriptions_analysis import PRDataAnalysis
 from visualize.lab_time_difference import TimeEffectVisualization
+
 import pandas as pd
 import datetime
 import random
 import numpy as np
 from scipy.stats import mannwhitneyu
 from scipy import stats
-import os
 import gzip
 import csv
 import matplotlib.pyplot as plt
@@ -17,28 +17,35 @@ from sklearn import datasets, linear_model, metrics
 import seaborn as sns
 import logging
 import pickle
+from scipy.stats import mannwhitneyu
+from scipy import stats
 
 logging.basicConfig(level=logging.INFO, format=f'%(filename)s [Class: %(name)s Func:%(funcName)s] %(levelname)s : %(message)s')
+
+def get_arg_val(arg, args):
+    if arg in args:
+        ind = args.index(arg)
+        val = args[ind+1]
+        return val
+    return None
 
 def main(args, BASE_DIR):
     print('Started process')
 
-    data_path = None
     logger = logging.getLogger(__name__)
     
-    if '--data' in args:
-        ind = args.index('--data')
-        data_path = args[ind+1]
-    else:
-        DATA = BASE_DIR+'/data'
+    data_path = get_arg_val('--data', args)
+    DATA = BASE_DIR+'/data'
+    if data_path is None:
         data_path = os.path.join(DATA, 'mimiciii', '1.4')
-    
-    results_path = None
-    if '--results' in args:
-        ind = args.index('--results')
-        results_path = args[ind+1]
-    else:
+
+    results_path = get_arg_val('--results', args)
+    if results_path is None:
         results_path = BASE_DIR+'/results'
+
+    n_meds = int(get_arg_val('--meds', args))
+    if n_meds is None:
+        n_meds = 50
 
     # Load dataset
     logger.info(f'Started loading dataset...')
@@ -59,20 +66,24 @@ def main(args, BASE_DIR):
     logger.info(f'Done loading dataset.')
 
     # Analysis
-    logger.info(f'Started inputevents data analysis...')
-    inp_path = os.path.join(results_path, 'inputevents')
-    inputevents_analysis = InputeventsDataAnalysis(inp_path)
-    inputevents_analysis.analyse()
-    logger.info(f'Done analyzing inputevents data. Results can be found in {inp_path} directory.')
+    # logger.info(f'Started inputevents data analysis...')
+    # inp_path = os.path.join(results_path, 'inputevents')
+    # inputevents_analysis = IEDataAnalysis(inp_path, data)
+    # inputevents_analysis.analyse(n_meds=n_meds)
+    # logger.info(f'Done analyzing inputevents data. Results can be found in {inp_path} directory.')
 
     # Analysis
-    logger.info(f'Started prescriptions data analysis...')
-    pres_path = os.path.join(results_path, 'prescriptions')
-    prescriptions_analysis = PrescriptionsDataAnalysis(pres_path)
-    prescriptions_analysis.analyse()
-    logger.info(f'Done analyzing prescriptions data. Results can be found in {pres_path} directory.')
+    # logger.info(f'Started prescriptions data analysis...')
+    # pres_path = os.path.join(results_path, 'prescriptions')
+    # prescriptions_analysis = PRDataAnalysis(pres_path, data)
+    # prescriptions_analysis.analyse(n_meds=n_meds)
+    # logger.info(f'Done analyzing prescriptions data. Results can be found in {pres_path} directory.')
 
     # Visualize
+    logger.info(f'Started visualizing results of data analysis...')
+    plot_module = TimeEffectVisualization('Insulin - Regular', 'Glucose', BASE_DIR, data)
+    plot_module.visualize()
+    logger.info(f'Done visualizing.')
     
 
 if __name__=="__main__":    
