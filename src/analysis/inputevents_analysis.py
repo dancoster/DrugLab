@@ -12,18 +12,20 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn import datasets, linear_model, metrics
 import logging
-from analysis import Analysis
+from analysis.analysis import Analysis
 
 logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class: %(name)s Func: %(funcName)s] %(levelname)s : %(message)s')
 
-class IEDataAnalysis(Analysis):
+class IEDataAnalysis:
 
-    def __init__(self, results_path, dataset):
-        self.RESULTS = results_path
-        self.data = dataset
+
+    def __init__(self, path, dataset, type):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.RESULTS = path
+        self.data = dataset
+        self.type = type
 
-    def analyse(self, table='inputevents', n_meds=60):
+    def analyse(self, table='inputevents', n_subs=200, n_meds=50):
 
         patient_presc = self.data.patient_presc[table]
         lab_measurements = self.data.lab_measurements[table]
@@ -36,14 +38,14 @@ class IEDataAnalysis(Analysis):
 
         ## Final Results - Reading one lab test before and after analysis
         self.logger.info(f'Performing analysis of medication effect, by comparing two labtest values (one taken before and another taken after) using statistical hypothesis testing for {table} data...')
-        res = self.before_after_analysis(lab_measurements, patient_presc, meds, 200, n_meds)
+        res = self.before_after_analysis(patient_presc, lab_measurements, meds, n_subs, n_meds)
         time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         res.to_csv(os.path.join(self.RESULTS, 'inputevents_before_after_'+time+'.csv'))
         self.logger.info(f'Analysis done for {table} data. Stored data in {self.RESULTS}')
             
         ## Final Results - Interpolation analysis and trend analysis
         self.logger.info(f'Performing analysis of medication effect, by "comparing the interpolated labtest value at time of medication and after labtest value" and "before and after trends" using statistical hypothesis testing for {table} data...')
-        final_res_df = self.reg_trend_analysis(lab_measurements, patient_presc, meds, 200, n_meds)
+        final_res_df = self.reg_trend_analysis(patient_presc, lab_measurements, meds, n_subs, n_meds)
         time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         final_res_df.to_csv(os.path.join(self.RESULTS, 'inputevents_regression_trend_'+time+'.csv'))
         self.logger.info(f'Analysis done for {table} data. Stored data in {self.RESULTS}')
@@ -76,7 +78,7 @@ class IEDataAnalysis(Analysis):
             return csvrow
         return None
 
-    def before_after_analysis(self, lab_measurements, patient_presc, meds, n_druglab_pairs = 25, n_drugs=None):
+    def before_after_analysis(self, patient_presc, lab_measurements, meds, n_druglab_pairs = 25, n_drugs=None):
         '''
         Final Results - Before and After
         '''
@@ -132,7 +134,7 @@ class IEDataAnalysis(Analysis):
         
         return None
     
-    def reg_trend_analysis(self, lab_measurements,  patient_presc, meds, n_medlab_pairs = 200, n_meds=None):
+    def reg_trend_analysis(self, patient_presc,lab_measurements, meds, n_medlab_pairs = 200, n_meds=None):
         uniqueLabTests = lab_measurements['LABEL'].unique()
         final_res = []
         after_vals = []
@@ -144,7 +146,8 @@ class IEDataAnalysis(Analysis):
             for j in tqdm(range(uniqueLabTests.shape[0])):
                 labTest = uniqueLabTests[j]
                 row = self.reg_trend_generator(med, patient_presc, lab_measurements, labTest, 200)
-                final_res.append(row)
+                if row is not None:
+                    final_res.append(row)
                 
         return pd.DataFrame(final_res, columns=['Medication','Lab Test', 'Number of patients', 'Estimated (mean)','Estimated (std)', 'Lab Test After(mean)','Lab Test After(std)','Time After(mean)','Time After(std)', 'Ttest-pvalue', 'Mannwhitney-pvalue', 'Before','After','Coef-Ttest-pvalue', 'Coef-Mannwhitney-pvalue'])
 

@@ -14,11 +14,26 @@ from sklearn import datasets, linear_model, metrics
 
 class Analysis:
 
-    def __init__(self):
-        pass
+    def __init__(self, path, dataset, type):
+        self.RESULTS = path
+        self.data = dataset
+        self.type = type
 
-    def analyse(self, table, n_meds):
-        pass
+    def analyse(self, n_subs=200, n_meds=50):
+
+        table = self.type
+
+        patient_presc = self.data.patient_presc[table]
+        lab_measurements = self.data.lab_measurements[table]
+        meds = self.data.meds[table]
+
+        ## Generating Lab Test<>Meds Pairings
+        finalDF, before, after = Analysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total', type=table)
+
+        ## Final Results - Reading before and after, regression and trend
+        res = self.results_analysis(patient_presc, lab_measurements, meds, n_subs, n_meds)
+        time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+        res.to_csv(os.path.join(self.RESULTS, f'{table}_before_after_interpolation_trend_{time}.csv'))
 
     def results_generator(self, med, presc, lab_measurements, labTest, n_medlab_pairs):
         pass
@@ -155,9 +170,9 @@ class Analysis:
             x = rows['VALUENUM']
 
             if plot:
-                y = IEDataAnalysis.get_hour(rows['timeFromPrescription'])
+                y = Analysis.get_hour(rows['timeFromPrescription'])
             else:
-                y = IEDataAnalysis.get_min(rows['timeFromPrescription'])
+                y = Analysis.get_min(rows['timeFromPrescription'])
 
             reg = linear_model.LinearRegression()
             if np.array(x).shape[0]>0 and np.array(y).shape[0]>0:

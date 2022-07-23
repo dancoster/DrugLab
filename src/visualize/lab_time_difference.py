@@ -44,7 +44,7 @@ class TimeEffectVisualization:
             self.meds = self.data.meds[data_table][:20]
 
 
-    def visualize(self, path=None):
+    def visualize(self, path=None, window=(1,24)):
         '''
         Visualize and plotting
         '''
@@ -63,14 +63,14 @@ class TimeEffectVisualization:
         os.mkdir(dirpath)
 
         absolute1, time_diff3 = self.remove_outlier(absolute, time_diff)
-        self.plot_func(absolute1, time_diff3, dirname, title='Absolute')
+        self.plot_func(absolute1, time_diff3, dirname, window=window, title='Absolute')
 
         percent1, time_diff1 = self.remove_outlier(percent, time_diff)
         time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
-        self.plot_func(percent1, time_diff1, dirname, title='Percentage')
+        self.plot_func(percent1, time_diff1, dirname, window=window, title='Percentage')
 
         ratio1, time_diff2 = self.remove_outlier(ratio, time_diff)
-        self.plot_func(ratio1, time_diff2, dirname, title='Ratio')
+        self.plot_func(ratio1, time_diff2, dirname, window=window, title='Ratio')
 
     def interpolation(self, subjects, before1):
         reg_anal_res = []
