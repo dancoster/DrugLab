@@ -80,7 +80,7 @@ class TimeEffect(Analysis):
 
         # 'Insulin - Regular'
         # 'Glucose'
-        drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab)
+        drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table)
         subjects = list(drug_lab['SUBJECT_ID'].unique())
 
         reg_anal_res, _, _ = Analysis.interpolation(subjects, before1)

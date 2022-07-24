@@ -34,7 +34,7 @@ class TimeEffectVisualization(TimeEffect):
         '''       
         self.logger = logging.getLogger(self.__class__.__name__) 
         self.BASE_DIR = BASE_DIR
-        self.plots_path = os.path.join(self.BASE_DIR, 'plots')     
+        self.plots_path = os.path.join(self.BASE_DIR, 'plots', table)     
         
         TimeEffect.__init__(self, self.plots_path, dataset, table)
 
@@ -55,7 +55,7 @@ class TimeEffectVisualization(TimeEffect):
         # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         suffix = f'w{str(window[0])}-{str(window[1])}'
         dirname = lab+"<>"+presc+"_"+suffix
-        dirpath = os.path.join(self.BASE_DIR, 'plots', 'inputevents', dirname)
+        dirpath = os.path.join(self.plots_path, dirname)
         if not os.path.isdir(dirpath):
             os.mkdir(dirpath)
 
@@ -88,7 +88,7 @@ class TimeEffectVisualization(TimeEffect):
         if labels is not None:
             extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
             plt.legend([extra, extra], (f'Pearson Correlation = {round(labels[0], 4)}', f'Spearmans Correlation = {round(labels[1], 4)}'))
-        plt.savefig(os.path.join(self.BASE_DIR, 'plots', 'inputevents', dirname, title+".png"))
+        plt.savefig(os.path.join(self.plots_path, dirname, title+".png"))
         plt.clf()
 
 # ## Prescriptions

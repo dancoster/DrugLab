@@ -20,12 +20,16 @@ Repository for medication<>lab-test pair.
     ├── plots                   # Plots for data analysis and visualization (Older plots on drive - check [plots section](##Plots))
     ├── src                     # Source Code 
     │   ├── preprocessing               # Data Preprocessing
-    |   |   └── preprocess.py             # Data Loading and preprocessing class
+    |   |   ├── preprocess.py             # Data Loading and preprocessing class
+    |   |   └── stratify.py               # Stratification class
     │   ├── analysis                    # Data Analysis
+    |   |   ├── analysis.py               # Analysis Parent Class
     |   |   ├── inputevents_analysis.py   # Inputevents table - Before and After, regression and trend analysis
     |   |   ├── presc_analysis.py         # Prescriptions table - Before and After, regression and trend analysis
+    |   |   └── time_effect_analysis.py   # Time effct analysis
     │   ├── modeling                    # Data Modeling
     │   └── visualize                   # Visualization of data analysis
+    |       └── time_effect_visualize.py   # Time effct Visualization
     ├── results                 # Results 
     └── README.md
 

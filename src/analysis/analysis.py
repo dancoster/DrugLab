@@ -180,8 +180,19 @@ class Analysis:
 
             # Get time from prescription and choose before and after lab measurements (within 24hrs=1day)
             mergeddf['timeFromPrescription'] = mergeddf['CHARTTIME'] - mergeddf['STARTDATE']
-            mergeddf = mergeddf[(mergeddf['timeFromPrescription']<datetime.timedelta(hours=(-1*window[0]))) & (mergeddf['timeFromPrescription']>datetime.timedelta(hours=(-1*window[1])))]
-            mergeddf = mergeddf[(mergeddf['timeFromPrescription']>datetime.timedelta(hours=window[0])) & (mergeddf['timeFromPrescription']<datetime.timedelta(hours=window[1]))]
+            mergeddf = mergeddf[(
+                    (
+                        mergeddf['timeFromPrescription']<datetime.timedelta(hours=(-1*window[0]))
+                    ) & (
+                        mergeddf['timeFromPrescription']>datetime.timedelta(hours=(-1*window[1]))
+                    )
+                ) | (
+                    (
+                        mergeddf['timeFromPrescription']>datetime.timedelta(hours=window[0])
+                    ) & (
+                        mergeddf['timeFromPrescription']<datetime.timedelta(hours=window[1])
+                    )
+                )]
             posmergeddf = mergeddf.loc[mergeddf.timeFromPrescription > datetime.timedelta(hours=12)]
             negmergeddf = mergeddf.loc[mergeddf.timeFromPrescription < datetime.timedelta(hours=-12)]
             
@@ -207,7 +218,6 @@ class Analysis:
             after = after[after['HADM_ID'].isin(before['HADM_ID'])]
 
             finaldf = negmergeddf.merge(posmergeddf,on=['HADM_ID','SUBJECT_ID'])
-            
             return finaldf, before, after
     
     ## Regression-Trend Analysis
