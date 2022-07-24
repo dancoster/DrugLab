@@ -17,11 +17,11 @@ class Analysis:
     def __init__(self, path, dataset, type):
         self.RESULTS = path
         self.data = dataset
-        self.type = type
+        self.table = type
 
     def analyse(self, n_subs=200, n_meds=50, window=(1,72)):
 
-        table = self.type
+        table = self.table
 
         patient_presc = self.data.patient_presc[table]
         lab_measurements = self.data.lab_measurements[table]
@@ -39,7 +39,7 @@ class Analysis:
         res.to_csv(os.path.join(self.RESULTS, f'{table}_before_after_interpolation_trend_{suffix}.csv'))
  
     def results_generator(self, med, patient_presc, lab_measurements, labTest, n_medlab_pairs=2000, window=(1,72)):
-        drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, type=self.type, window=window)
+        drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, type=self.table, window=window)
         subjects = before['SUBJECT_ID'].unique()
         
         num = drug_lab['SUBJECT_ID'].unique().shape[0]

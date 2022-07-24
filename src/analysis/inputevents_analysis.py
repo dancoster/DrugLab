@@ -22,30 +22,30 @@ class IEDataAnalysis(Analysis):
         self.logger = logging.getLogger(self.__class__.__name__)
         Analysis.__init__(self, path, dataset, 'inputevents')
 
-    def analyse_custom(self, table='inputevents', n_subs=200, n_meds=50):
+    def analyse_custom(self, n_subs=200, n_meds=50):
 
-        patient_presc = self.data.patient_presc[table]
-        lab_measurements = self.data.lab_measurements[table]
-        meds = self.data.meds[table]
+        patient_presc = self.data.patient_presc[self.table]
+        lab_measurements = self.data.lab_measurements[self.table]
+        meds = self.data.meds[self.table]
 
         ## Generating Lab Test<>Meds Pairings
-        self.logger.info(f'Testing the working on labpairing generation for {table} data...')
+        self.logger.info(f'Testing the working on labpairing generation for {self.table} data...')
         finalDF, before, after = Analysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total')
         self.logger.info(f'Testing successful.')
 
         ## Final Results - Reading one lab test before and after analysis
-        self.logger.info(f'Performing analysis of medication effect, by comparing two labtest values (one taken before and another taken after) using statistical hypothesis testing for {table} data...')
+        self.logger.info(f'Performing analysis of medication effect, by comparing two labtest values (one taken before and another taken after) using statistical hypothesis testing for {self.table} data...')
         res = self.before_after_analysis(patient_presc, lab_measurements, meds, n_subs, n_meds)
         time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         res.to_csv(os.path.join(self.RESULTS, 'inputevents_before_after_'+time+'.csv'))
-        self.logger.info(f'Analysis done for {table} data. Stored data in {self.RESULTS}')
+        self.logger.info(f'Analysis done for {self.table} data. Stored data in {self.RESULTS}')
             
         ## Final Results - Interpolation analysis and trend analysis
-        self.logger.info(f'Performing analysis of medication effect, by "comparing the interpolated labtest value at time of medication and after labtest value" and "before and after trends" using statistical hypothesis testing for {table} data...')
+        self.logger.info(f'Performing analysis of medication effect, by "comparing the interpolated labtest value at time of medication and after labtest value" and "before and after trends" using statistical hypothesis testing for {self.table} data...')
         final_res_df = self.reg_trend_analysis(patient_presc, lab_measurements, meds, n_subs, n_meds)
         time = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         final_res_df.to_csv(os.path.join(self.RESULTS, 'inputevents_regression_trend_'+time+'.csv'))
-        self.logger.info(f'Analysis done for {table} data. Stored data in {self.RESULTS}')
+        self.logger.info(f'Analysis done for {self.table} data. Stored data in {self.RESULTS}')
 
     def before_after_generator(self, drug, patient_presc, lab_measurements, labTest,  n_druglab_pairs=25):
         '''

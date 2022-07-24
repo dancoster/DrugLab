@@ -2,7 +2,7 @@ import os, sys
 from preprocess.preprocess import Dataset
 from analysis.inputevents_analysis import IEDataAnalysis
 from analysis.prescriptions_analysis import PRDataAnalysis
-from visualize.lab_time_difference import TimeEffectVisualization
+from visualize.time_effect_visualize import TimeEffectVisualization
 
 import pandas as pd
 import datetime
@@ -21,21 +21,6 @@ from scipy.stats import mannwhitneyu
 from scipy import stats
 
 logging.basicConfig(level=logging.INFO, format=f'%(filename)s [Class: %(name)s Func:%(funcName)s] %(levelname)s : %(message)s')
-
-def get_arg_val(arg, args, k=1):
-    if k==1:
-        if arg in args:
-            ind = args.index(arg)
-            val = args[ind+1]
-            return val
-    if k>1:
-        if arg in args:
-            ind = args.index(arg)
-            val = []
-            for i in range(k):
-                val.append(args[ind+i+1])
-            return val
-    return None
 
 def config_args(args, BASE_DIR, DATA):
 
@@ -59,13 +44,38 @@ def config_args(args, BASE_DIR, DATA):
         config['n_sub_pairs'] = 50
     config['n_sub_pairs'] = int(config['n_sub_pairs'])
 
+    config['table'] = get_arg_val('--table', args)
+    if config['table'] is None:
+        config['table'] = 'inputevents'
+
     config['window'] = get_arg_val('--window', args, k=2)
     if config['window'] is None:
         config['window'] = (1,24)
     else:
         config['window'] = (int(config['window'][0]), int(config['window'][1]))
+    
+    config['visualize'] = get_arg_val('--visualize', args, k=2)
+    if config['visualize'] is None:
+        config['visualize'] = ('Insulin - Regular', 'Glucose')
+    else:
+        config['visualize'] = tuple(config['visualize'])
 
     return config
+
+def get_arg_val(arg, args, k=1):
+    if k==1:
+        if arg in args:
+            ind = args.index(arg)
+            val = args[ind+1]
+            return val
+    if k>1:
+        if arg in args:
+            ind = args.index(arg)
+            val = []
+            for i in range(k):
+                val.append(args[ind+i+1])
+            return val
+    return None
 
 def main(args, BASE_DIR):
     print('Started process')
@@ -111,12 +121,13 @@ def main(args, BASE_DIR):
 
     # Visualize
     if '-v' in args:
-        logger.info(f'Started visualizing results of data analysis...')
-        plot_module = TimeEffectVisualization('Insulin - Regular', 'Glucose', BASE_DIR, data)
-        plot_module.visualize(window=config['window'])
+        pair = config['visualize']
+        logger.info(f'Started visualizing time effect analysis {str(pair)} of pair results...')
+        plot_module = TimeEffectVisualization(BASE_DIR, data, table=config['table'])
+        plot_module.visualize(config['visualize'][0], config['visualize'][1], window=config['window'])
         logger.info(f'Done visualizing.')
     
 
-if __name__=="__main__":    
+if __name__=="__main__":
     BASE_DIR = os.getcwd()
     main(sys.argv, BASE_DIR)
