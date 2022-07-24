@@ -87,7 +87,7 @@ class TimeEffectVisualization(TimeEffect):
         plt.ylabel(lab+' Levels ('+unit+')')
         if labels is not None:
             extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
-            plt.legend([extra, extra], (f'Pearson Correlation = {round(labels[0], 2)}', f'Spearmans Correlation = {round(labels[1], 2)}'))
+            plt.legend([extra, extra], (f'Pearson Correlation = {round(labels[0], 4)}', f'Spearmans Correlation = {round(labels[1], 4)}'))
         plt.savefig(os.path.join(self.BASE_DIR, 'plots', 'inputevents', dirname, title+".png"))
         plt.clf()
 
