@@ -12,31 +12,44 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn import datasets, linear_model, metrics
 
-class Analysis:
+from analysis.significant import SignificantPairs
 
-    def __init__(self, path, dataset, type):
+class Analysis(SignificantPairs):
+
+    def __init__(self, path, dataset, type, stats_test='mannwhitney'):
         self.RESULTS = path
         self.data = dataset
         self.table = type
+        SignificantPairs.__init__(self, stats_test)
 
-    def analyse(self, n_subs=200, n_meds=50, window=(1,72)):
+    def analyse(self, n_subs=200, n_meds=50, window=(1,72), test_type=None):
 
         table = self.table
-
-        patient_presc = self.data.patient_presc[table]
-        lab_measurements = self.data.lab_measurements[table]
-        meds = self.data.meds[table]
-
-        ## Generating Lab Test<>Meds Pairings
-        finalDF, before, after = Analysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total', type=table)
-
-        ## Final Results - Reading before and after, regression and trend
-        res = self.results_analysis(patient_presc, lab_measurements, meds, n_medlab_pairs = n_subs, n_meds=n_meds, window=window)
-
         # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         suffix = f'p{str(n_subs)}_m{str(n_meds)}_w{str(window[0])}-{str(window[1])}'
+        res_path = os.path.join(self.RESULTS, f'{table}_before_after_interpolation_trend_{suffix}.csv')
+        res_analysis = None
+        if os.path.exists(res_path):
+            res_analysis = pd.read_csv(res_path)
+            res_analysis = res_analysis.drop(columns=['Unnamed: 0'])
+        else:
+            patient_presc = self.data.patient_presc[table]
+            lab_measurements = self.data.lab_measurements[table]
+            meds = self.data.meds[table]
 
-        res.to_csv(os.path.join(self.RESULTS, f'{table}_before_after_interpolation_trend_{suffix}.csv'))
+            ## Generating Lab Test<>Meds Pairings
+            finalDF, before, after = Analysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total', type=table)
+
+            ## Final Results - Reading before and after, regression and trend
+            res_analysis = self.results_analysis(patient_presc, lab_measurements, meds, n_medlab_pairs = n_subs, n_meds=n_meds, window=window)
+
+            res_analysis.to_csv(res_path)
+
+        if test_type is None:
+            for i in self.enum.keys():
+                merged = self.get_significant_pairs(res_analysis, i, res_path)
+        else:
+            merged = self.get_significant_pairs(res_analysis, test_type, res_path)
  
     def results_generator(self, med, patient_presc, lab_measurements, labTest, n_medlab_pairs=2000, window=(1,72)):
         drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, type=self.table, window=window)
@@ -265,3 +278,4 @@ class Analysis:
                 time.append(y)
 
         return reg_anal_res, lab_vals, time
+   
