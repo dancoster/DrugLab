@@ -84,7 +84,7 @@ class TimeEffectVisualization(TimeEffect):
                 truncate=False)
         plt.title(lab+'<>'+presc+'- '+ title+ ' \nchange in lab measurment and time taken for change')
         plt.xlabel('Time in hours')
-        plt.ylabel(lab+' Levels ('+unit+')')
+        plt.ylabel(title+ ' change in '+lab+' lab measurment')
         if labels is not None:
             extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
             plt.legend([extra, extra], (f'Pearson Correlation = {round(labels[0], 4)}', f'Spearmans Correlation = {round(labels[1], 4)}'))

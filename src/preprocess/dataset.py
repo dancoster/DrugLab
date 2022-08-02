@@ -23,10 +23,15 @@ logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class:
 
 class Dataset:
     
-    def __init__(self, name, data_path, preprocessed=True, n_sub=15000, random_seed=10):
+    def __init__(self, name, data_path, preprocessed=True, n_sub=15000, random_seed=10, between_meds=(1,2)):
         self.name = name    # mimiciii
         self.DATA = data_path
         self.logger = logging.getLogger(self.__class__.__name__)
+
+        self.between_meds = between_meds
+        if self.between_meds:
+            self.med1 = None
+            self.med2 = None
 
         self.logger.info(f'Started loading data from {name} dataset...')
         
@@ -122,8 +127,26 @@ class Dataset:
 
                 return temp[temp['bins']==temp['bins'].unique()[0]]
 
-        ### Inputevents
         if type=='inputevents_mv':
+            try:
+                self.logger.info(f'Loading {type} data...')
+                inputevents_mv_subjects = pd.read_csv(self.DATA, 'raw', 'INPUTEVENTS_MV.csv.gz')  
+                inputevents_mv_subjects = inputevents_mv_subjects[inputevents_mv_subjects['STATUSDESCRIPTION']=='FinishedRunning']
+                inputevents_mv_subjects = inputevents_mv_subjects[inputevents_mv_subjects['CANCELREASON']==0]
+                d_item = pd.read_csv(os.path.join(self.DATA, 'raw', 'D_ITEMS.csv.gz'))          
+            except:
+                self.logger.error(f'File not found {type}')
+                return None
+            else:
+                ditem_inputevents_mv = pd.merge(inputevents_mv_subjects, d_item, on='ITEMID', how='inner')
+                inputevents_mv_1 = ditem_inputevents_mv[['SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID', 'STARTTIME', 'ENDTIME', 'ITEMID', 'AMOUNT', 'AMOUNTUOM', 'UNITNAME', 'ORDERCATEGORYNAME', 'LABEL', 'CATEGORY', 'PARAM_TYPE']]
+                inputevents_mv_1['STARTTIME'] = pd.to_datetime(inputevents_mv_1['STARTTIME'],  format='%Y/%m/%d %H:%M:%S')
+                inputevents_mv_1['ENDTIME'] = pd.to_datetime(inputevents_mv_1['ENDTIME'],  format='%Y/%m/%d %H:%M:%S')
+                self.logger.info(f'Loaded {type}')
+                return inputevents_mv_1                
+
+        ### Inputevents
+        if type=='inputevents_mv_low_mem':
             try:
                 self.logger.info(f'Loading {type} data...')
 
@@ -157,7 +180,6 @@ class Dataset:
                 ditem_inputevents_mv = pd.merge(inputevents_mv_subjects, d_item, on='ITEMID', how='inner')
 
                 inputevents_mv_1 = ditem_inputevents_mv[['SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID', 'STARTTIME', 'ENDTIME', 'ITEMID', 'AMOUNT', 'AMOUNTUOM', 'UNITNAME', 'ORDERCATEGORYNAME', 'LABEL', 'CATEGORY', 'PARAM_TYPE']]
-                inputevents_mv_1
 
                 inputevents_mv_1['STARTTIME'] = pd.to_datetime(inputevents_mv_1['STARTTIME'],  format='%Y/%m/%d %H:%M:%S')
                 inputevents_mv_1['ENDTIME'] = pd.to_datetime(inputevents_mv_1['ENDTIME'],  format='%Y/%m/%d %H:%M:%S')
@@ -210,6 +232,20 @@ class Dataset:
                 return drugs
         
         if type=='prescriptions':
+            try:
+                self.logger.info(f'Loading {type} data...')
+                prescriptions = pd.read_csv(os.path.join(self.DATA, 'raw', 'PRESCRIPTIONS.csv.gz'))
+            except:
+                self.logger.error(f'File not found {type}.')
+                return None
+            else:
+                self.logger.info(f'Loaded {type}')
+                prescriptions['STARTDATE'] = pd.to_datetime(prescriptions['STARTDATE'],  format='%Y/%m/%d %H:%M:%S')
+                prescriptions['ENDDATE'] = pd.to_datetime(prescriptions['ENDDATE'],  format='%Y/%m/%d %H:%M:%S')
+                self.logger.info(f'Loaded {type}')
+                return prescriptions
+        
+        if type=='prescriptions_low_mem':
             
             try:
                 with gzip.open(os.path.join(self.DATA, 'raw', 'PRESCRIPTIONS.csv.gz'), 'rb') as fp:
@@ -272,6 +308,18 @@ class Dataset:
         df = df[df['HADM_ID'].isin(first_admissions['HADM_ID'])]
         return df
 
+    def get_between_meds(self, patient_presc, lab_measurements):
+        med2 = patient_presc.groupby('HADM_ID').nth(self.between_med[1]).reset_index()
+        med1 = patient_presc.groupby('HADM_ID').nth(self.between_med[0]).reset_index()
+        med1 = med1[med1['HADM_ID'].isin(med2['HADM_ID'])]
+
+        final_lab = []
+        for i, row in enumerate(lab_measurements.iterrows()):
+            if lab_measurements
+        
+        return patient_presc, lab_measurements
+
+
     def preprocess(self, type='inputevents'):
         '''Data Preprocessing'''
 
@@ -282,12 +330,21 @@ class Dataset:
         if type=='inputevents':
             ### Patient Prescription
             patient_presc = self.inputevents
-            patient_presc = self.remove_multiple_admissions(patient_presc)
-            patient_presc = self.inputevents[self.inputevents['LABEL'].isin(self.meds[type]['MED'])]
+
+            # Get first admission
+            # WRONG - patient_presc = self.remove_multiple_admissions(patient_presc)
+            patient_presc = patient_presc.sort_values(['SUBJECT_ID', 'STARTTIME']).groupby('SUBJECT_ID').nth(1).reset_index()
+            patient_presc = patient_presc[patient_presc['LABEL'].isin(self.meds[type]['MED'])]
 
             ### Lab Measurements
-            # lab_measurements = lab_measurements[lab_measurements.duplicated(subset=['SUBJECT_ID','LABEL'],keep=False)]
             lab_measurements = lab_measurements[lab_measurements['HADM_ID'].isin(patient_presc['HADM_ID'])]
+
+            if self.between_meds:
+                self.med2 = patient_presc.groupby('HADM_ID').nth(self.between_meds[1]).reset_index()
+                self.med1 = patient_presc.groupby('HADM_ID').nth(self.between_meds[0]).reset_index()
+                self.only_med1 = med1[~med1['HADM_ID'].isin(med2['HADM_ID'])]
+                self.med1 = med1[med1['HADM_ID'].isin(med2['HADM_ID'])]
+
 
         if type=='prescriptions':
             ### Patient Prescription

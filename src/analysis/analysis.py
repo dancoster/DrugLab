@@ -51,7 +51,7 @@ class Analysis(SignificantPairs):
         else:
             merged = self.get_significant_pairs(res_analysis, test_type, res_path)
  
-    def results_generator(self, med, patient_presc, lab_measurements, labTest, n_medlab_pairs=2000, window=(1,72)):
+    def results_generator(self, med, patient_presc, lab_measurements, labTest, n_medlab_pairs=2000, window=(1,72), hours=False):
         drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, type=self.table, window=window)
         subjects = before['SUBJECT_ID'].unique()
         
@@ -61,7 +61,7 @@ class Analysis(SignificantPairs):
         
         if num > n_medlab_pairs and before_num > (0.25*n_medlab_pairs) and after_num > (0.25*n_medlab_pairs): 
             
-            before_reg_anal_res, before_lab_vals, before_time = Analysis.interpolation(subjects, before)
+            before_reg_anal_res, before_lab_vals, before_time = Analysis.interpolation(subjects, before, plot=hours)
             after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after)
             estimated = np.array(pd.DataFrame(before_reg_anal_res)['estimated'])
 
@@ -259,10 +259,7 @@ class Analysis(SignificantPairs):
 
             x = rows['VALUENUM']
 
-            if plot:
-                y = Analysis.get_hour(rows['timeFromPrescription'])
-            else:
-                y = Analysis.get_min(rows['timeFromPrescription'])
+            y = Analysis.get_min(rows['timeFromPrescription'])
 
             reg = linear_model.LinearRegression()
             if np.array(x).shape[0]>0 and np.array(y).shape[0]>0:
@@ -275,7 +272,11 @@ class Analysis(SignificantPairs):
                 reg_anal_res.append(res_vals)
 
                 lab_vals.append(x)
-                time.append(y)
+                if plot:
+                    k = Analysis.get_hour(rows['timeFromPrescription'])
+                else:
+                    k = Analysis.get_min(rows['timeFromPrescription'])
+                time.append(k)
 
         return reg_anal_res, lab_vals, time
    
