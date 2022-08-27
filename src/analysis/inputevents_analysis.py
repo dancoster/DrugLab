@@ -18,9 +18,9 @@ logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class:
 
 class IEDataAnalysis(Analysis):
 
-    def __init__(self, path, dataset):
+    def __init__(self, path, dataset, suffix=''):
         self.logger = logging.getLogger(self.__class__.__name__)
-        Analysis.__init__(self, path, dataset, 'inputevents')
+        Analysis.__init__(self, path, dataset, 'inputevents', suffix=suffix)
 
     def analyse_custom(self, n_subs=200, n_meds=50):
 

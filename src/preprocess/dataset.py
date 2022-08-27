@@ -28,17 +28,16 @@ class Dataset:
         self.DATA = data_path
         self.logger = logging.getLogger(self.__class__.__name__)
 
-        self.between_meds = between_meds
+        self.between_meds = (between_meds[0]-1, between_meds[1]-1)
         if self.between_meds:
-            self.med1 = None
-            self.med2 = None
+            self.med1, self.med2, self.only_med1 = None, None, None
 
         self.logger.info(f'Started loading data from {name} dataset...')
         
         # Choose n random subjects
         self.dob_patient_bins = self.load_data('dob_patient_bins')
         random.seed(random_seed)
-        subjects_2k = random.sample(list(self.dob_patient_bins['SUBJECT_ID'].value_counts().keys()), n_sub)
+        self.subjects_2k = random.sample(list(self.dob_patient_bins['SUBJECT_ID'].value_counts().keys()), n_sub)
         
         # dataset data
         self.admissions = self.load_data('admissions')
@@ -48,7 +47,7 @@ class Dataset:
         if preprocessed:
             self.inputevents = self.load_data('inputevents_mv_preprocessed')
         else:
-            self.inputevents = self.load_data('inputevents')
+            self.inputevents = self.load_data('inputevents_mv')
         self.meds['inputevents'] = self.load_data('inputevent_meds')
         
         if preprocessed:
@@ -59,7 +58,7 @@ class Dataset:
 
         self.logger.info(f'Loaded data from {name} dataset.')
         self.logger.info(f'Preprocessing data from {name} dataset...')
-        
+
         self.patient_presc, self.lab_measurements = dict(), dict()
         self.patient_presc['inputevents'], self.lab_measurements['inputevents'] = self.preprocess('inputevents')
         self.patient_presc['prescriptions'], self.lab_measurements['prescriptions'] = self.preprocess('prescriptions')
@@ -130,7 +129,7 @@ class Dataset:
         if type=='inputevents_mv':
             try:
                 self.logger.info(f'Loading {type} data...')
-                inputevents_mv_subjects = pd.read_csv(self.DATA, 'raw', 'INPUTEVENTS_MV.csv.gz')  
+                inputevents_mv_subjects = pd.read_csv(os.path.join(self.DATA, 'raw', 'INPUTEVENTS_MV.csv.gz'))
                 inputevents_mv_subjects = inputevents_mv_subjects[inputevents_mv_subjects['STATUSDESCRIPTION']=='FinishedRunning']
                 inputevents_mv_subjects = inputevents_mv_subjects[inputevents_mv_subjects['CANCELREASON']==0]
                 d_item = pd.read_csv(os.path.join(self.DATA, 'raw', 'D_ITEMS.csv.gz'))          
@@ -163,7 +162,7 @@ class Dataset:
                     reader = csv.reader(fp)
                     headers = next(reader)
                     for line in reader:
-                        if int(line[1]) in subjects_2k and line[-6]=="FinishedRunning" and line[-7]=='0':
+                        if int(line[1]) in self.subjects_2k and line[-6]=="FinishedRunning" and line[-7]=='0':
                             data.append(line)
                 inputevents_mv_subjects = pd.DataFrame(data, columns=headers)
 
@@ -210,7 +209,7 @@ class Dataset:
                 self.logger.info(f'Loading {type} data...')
                 meds = self.inputevents.groupby(['LABEL', 'SUBJECT_ID']).count().reset_index()['LABEL'].value_counts().reset_index()
             except:
-                self.logger.error(f'Error')
+                self.logger.error(f'Error {type}')
                 return None
             else:
                 self.logger.info(f'Loaded {type}')
@@ -224,7 +223,7 @@ class Dataset:
                 drugs = self.prescriptions.groupby(['DRUG', 'SUBJECT_ID']).count().reset_index()['DRUG'].value_counts().reset_index()
 
             except:
-                self.logger.error(f'Error')
+                self.logger.error(f'Error {type}')
                 return None
             else:
                 self.logger.info(f'Loaded {type}')
@@ -260,7 +259,7 @@ class Dataset:
                     reader = csv.reader(fp)
                     headers = next(reader)
                     for line in tqdm(reader, total=size):
-                        if int(line[1]) in subjects_2k:
+                        if int(line[1]) in self.subjects_2k:
                             data.append(line)
                 
                 prescriptions = pd.DataFrame(data, columns=headers)
@@ -308,16 +307,11 @@ class Dataset:
         df = df[df['HADM_ID'].isin(first_admissions['HADM_ID'])]
         return df
 
-    def get_between_meds(self, patient_presc, lab_measurements):
+    def get_meds(self, patient_presc):
         med2 = patient_presc.groupby('HADM_ID').nth(self.between_med[1]).reset_index()
         med1 = patient_presc.groupby('HADM_ID').nth(self.between_med[0]).reset_index()
-        med1 = med1[med1['HADM_ID'].isin(med2['HADM_ID'])]
-
-        final_lab = []
-        for i, row in enumerate(lab_measurements.iterrows()):
-            if lab_measurements
-        
-        return patient_presc, lab_measurements
+        med1 = med1[med1['HADM_ID'].isin(med2['HADM_ID'])]        
+        return med1, med2
 
 
     def preprocess(self, type='inputevents'):
@@ -332,8 +326,11 @@ class Dataset:
             patient_presc = self.inputevents
 
             # Get first admission
-            # WRONG - patient_presc = self.remove_multiple_admissions(patient_presc)
-            patient_presc = patient_presc.sort_values(['SUBJECT_ID', 'STARTTIME']).groupby('SUBJECT_ID').nth(1).reset_index()
+            # WRONG - patient_presc = self.remove_multiple_admissions(patient_presc)## Load admissions and patient data
+            admissions = pd.read_csv(os.path.join(self.DATA, 'raw/ADMISSIONS.csv.gz'))
+            admissions = admissions.sort_values(['SUBJECT_ID', 'ADMITTIME']).groupby('SUBJECT_ID').nth(0).reset_index() 
+
+            patient_presc = patient_presc[patient_presc['HADM_ID'].isin(admissions['HADM_ID'])]
             patient_presc = patient_presc[patient_presc['LABEL'].isin(self.meds[type]['MED'])]
 
             ### Lab Measurements
@@ -342,8 +339,8 @@ class Dataset:
             if self.between_meds:
                 self.med2 = patient_presc.groupby('HADM_ID').nth(self.between_meds[1]).reset_index()
                 self.med1 = patient_presc.groupby('HADM_ID').nth(self.between_meds[0]).reset_index()
-                self.only_med1 = med1[~med1['HADM_ID'].isin(med2['HADM_ID'])]
-                self.med1 = med1[med1['HADM_ID'].isin(med2['HADM_ID'])]
+                self.only_med1 = self.med1[~self.med1['HADM_ID'].isin(self.med2['HADM_ID'])]
+                self.med1 = self.med1[self.med1['HADM_ID'].isin(self.med2['HADM_ID'])]
 
 
         if type=='prescriptions':

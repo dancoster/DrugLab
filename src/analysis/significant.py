@@ -12,8 +12,9 @@ import os
 
 class SignificantPairs:
 
-    def __init__(self, stats_test):
+    def __init__(self, stats_test, suffix=''):
         self.stats_test = stats_test
+        self.suffix=f'_{suffix}'
         self.enum = {
             'absolute' : ['Absolute-', self.absolute_significant],
             'interpolated' : ['', self.interpolated_significant],
@@ -56,7 +57,7 @@ class SignificantPairs:
                 ['Number of patients'], ascending=False
         )
         merged = merged.sort_values(['Number of patients'], ascending=False).sort_values(['FDR Benjamini Corrected', 'Bonferroni Corrected'])
-        merged.to_csv(f'{res_path[:-4]}_significant_{self.stats_test}_{test_type}.csv')
+        merged.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_{test_type}.csv')
         return merged
     
     def interpolated_significant(self, res_analysis, test_type, res_path):
@@ -65,11 +66,11 @@ class SignificantPairs:
                 columns=['Lab Test After(std)', 'Time After(std)', 'Absolute-Ttest-pvalue',	'Absolute-Mannwhitney-pvalue',	'Before',	'After',	'Coef-Ttest-pvalue'	,'Coef-Mannwhitney-pvalue']
         )
         merged = merged.sort_values(['Number of patients'], ascending=False).sort_values(['FDR Benjamini Corrected', 'Bonferroni Corrected'])
-        merged.to_csv(f'{res_path[:-4]}_significant_{self.stats_test}_{test_type}.csv')
+        merged.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_{test_type}.csv')
         l = pd.merge(self.bonferroni(pvals, res_analysis), self.fdr1_benjamini(pvals, res_analysis), how='inner').drop(
                 columns=['Lab Test After(std)', 'Time After(std)', 'Absolute-Ttest-pvalue',	'Absolute-Mannwhitney-pvalue',	'Before',	'After',	'Coef-Ttest-pvalue'	,'Coef-Mannwhitney-pvalue']
         ).sort_values(['Number of patients'], ascending=False).sort_values(['FDR Benjamini Corrected', 'Bonferroni Corrected'])
-        l.to_csv(f'{res_path[:-4]}_significant_{self.stats_test}_{test_type}.csv')
+        l.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_{test_type}.csv')
         return l
     
     def trends_significant(self, res_analysis, test_type, res_path):
@@ -80,7 +81,7 @@ class SignificantPairs:
             ['Number of patients'], ascending=False
         )
         merged = merged.sort_values(['Number of patients'], ascending=False).sort_values(['FDR Benjamini Corrected', 'Bonferroni Corrected'])
-        merged.to_csv(f'{res_path[:-4]}_significant_{self.stats_test}_{test_type}.csv')
+        merged.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_{test_type}.csv')
         return merged
 
     def get_significant_pairs(self, res_analysis, test_type, res_path):
