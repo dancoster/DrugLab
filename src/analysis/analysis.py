@@ -65,7 +65,7 @@ class Analysis(SignificantPairs):
             if num > n_medlab_pairs and before_num > (0.25*n_medlab_pairs) and after_num > (0.25*n_medlab_pairs): 
                 
                 before_reg_anal_res, before_lab_vals, before_time = Analysis.interpolation(subjects, before, plot=hours, before_window=(1,2))
-                after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after)
+                after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after, type='after')
                 estimated = np.array(pd.DataFrame(before_reg_anal_res)['estimated'])
 
                 before_values = np.array([list(k)[-1] for k in before_lab_vals])
@@ -276,7 +276,7 @@ class Analysis(SignificantPairs):
 
     # Regression Analysis
     @staticmethod
-    def interpolation(subjects, before, plot=False, before_window=None):
+    def interpolation(subjects, before, plot=False, before_window=None, type='before'):
         reg_anal_res = []
         lab_vals = []
         time = []
@@ -288,6 +288,10 @@ class Analysis(SignificantPairs):
             
             rows = before[before['SUBJECT_ID']==i]
             rows = rows.sort_values(by='timeFromPrescription')
+            if type=='before':
+                rows = rows[-2:]
+            elif type=='after':
+                rows = rows[:2]
 
             x = rows['VALUENUM']
 
