@@ -113,6 +113,8 @@ class TimeEffect(Analysis):
             after1 = after1[after1['SUBJECT_ID'].isin(before1['SUBJECT_ID'])]
             before1 = before1[before1['SUBJECT_ID'].isin(after1['SUBJECT_ID'])]
 
+        print(after1, before1)
+
         reg_anal_res, _, _ = Analysis.interpolation(subjects, before1)
         if method=='estimate':
             e = pd.DataFrame(reg_anal_res)
