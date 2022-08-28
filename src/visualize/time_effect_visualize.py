@@ -37,9 +37,13 @@ class TimeEffectVisualization(TimeEffect):
         self.plots_path = os.path.join(self.BASE_DIR, 'plots', table)     
         
         TimeEffect.__init__(self, self.plots_path, dataset, table)
+    
+    def get_windows(self, window, before_window_info, after_window_info):
+        before_windows = [(val, val+before_window_info[0]) for i, val in enumerate(range(window[0], before_window_info[0]*before_window_info[1]+window[0], before_window_info[0]))]
+        after_windows = [(window[0], val) for i, val in enumerate(range(window[0], after_window_info[0]*after_window_info[1]+window[0], after_window_info[0]))]
+        return before_windows, after_windows
 
-
-    def visualize(self, presc, lab, path=None, window=(1,24)):
+    def visualize(self, presc, lab, path=None, window=(1,24), before_window_info=(2, 4), after_window_info=(2, 5)):
         '''
         Visualize and plotting
         '''
@@ -48,48 +52,102 @@ class TimeEffectVisualization(TimeEffect):
         if path is not None:
             comp_path = path
         
-        absolute, time_diff = self.get_data( presc, lab, 'absolute')
-        percent, time_diff = self.get_data( presc, lab, 'percent')
-        ratio, time_diff = self.get_data( presc, lab, 'ratio')
-        
         # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
-        suffix = f'w{str(window[0])}-{str(window[1])}'
+        suffix = f'w{str(window[0])}-{str(window[1])}_bw{str(before_window_info[0])},{str(before_window_info[1])}_aw{str(after_window_info[0])},{str(after_window_info[1])}'
         dirname = lab+"<>"+presc+"_"+suffix
         dirpath = os.path.join(self.plots_path, dirname)
         if not os.path.isdir(dirpath):
             os.mkdir(dirpath)
+        
+        before_windows, after_windows = self.get_windows(window, before_window_info, after_window_info)
 
-        corrs = self.get_correlation(presc, lab)
-        absolute1, time_diff3 = self.remove_outlier(absolute, time_diff)
-        self.plot_func(presc, lab, absolute1, time_diff3, dirname, window=window, title='Absolute', labels=corrs)
 
-        corrs = self.get_correlation(presc, lab, val_type='percent')
-        percent1, time_diff1 = self.remove_outlier(percent, time_diff)
-        self.plot_func(presc, lab, percent1, time_diff1, dirname, window=window, title='Percentage', labels=corrs)
+        for i, before_window in enumerate(before_windows):            
+        
+            absolute, time_diff = self.get_data( presc, lab, 'absolute', method='estimate', before_window=before_window)
+            percent, time_diff = self.get_data( presc, lab, 'percent', method='estimate', before_window=before_window)
+            ratio, time_diff = self.get_data( presc, lab, 'ratio', method='estimate', before_window=before_window)
 
-        corrs = self.get_correlation(presc, lab, val_type='ratio')
-        ratio1, time_diff2 = self.remove_outlier(ratio, time_diff)
-        self.plot_func(presc, lab, ratio1, time_diff2, dirname, window=window, title='Ratio', labels=corrs)
+            fig_all, ax_all = plt.subplots(3)
+            fig_all.suptitle(f'Change analysis over after medication time \nfor {lab}<>{presc} pair (before window = {str(before_window)})')
 
-    def plot_func(self, presc, lab, absolute, time_diff, dirname, window=(1,24), title='', unit='mg/dL', labels=None):
+            fig_corrs, ax_corrs = plt.subplot(3, 2)
+            fig_corrs.suptitle(f'Correlation Change analysis over after medication time \nfor {lab}<>{presc} pair')  
+
+            # Absolute
+            corrs = self.get_correlation(presc, lab, val_type='absolute')
+            absolute1, time_diff3 = self.remove_outlier(absolute, time_diff)
+            self.plot_func(presc, lab, absolute1, time_diff3, dirname, window=window, title='Absolute', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[0])
+
+            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='absolute')
+            self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[0], title='Absolute', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
+
+            # Percentage
+            corrs = self.get_correlation(presc, lab, val_type='percent')
+            percent1, time_diff1 = self.remove_outlier(percent, time_diff)
+            self.plot_func(presc, lab, percent1, time_diff1, dirname, window=window, title='Percentage', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[1])
+
+            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='percent')
+            self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[1], title='Percentage', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
+            
+            # Ratio
+            corrs = self.get_correlation(presc, lab, val_type='ratio')
+            ratio1, time_diff2 = self.remove_outlier(ratio, time_diff)
+            self.plot_func(presc, lab, ratio1, time_diff2, dirname, window=window, title='Ratio', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[2])
+
+            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='ratio')
+            self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[2], title='Ratio', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
+
+            fig_all.savefig(os.path.join(dirpath, f'all_after_change_analysis_bw{str(before_window)}.png'))
+            fig_corrs.savefig(f'corrs_analysis_bw{str(before_window)}_awi{str(after_window_info)}.png')
+
+    def plot_corrs(self, p_corrs, s_corrs, after_windows, ax, title='', plot_name='',  after_window_info=None):
+
+        final_plot_name = f'{plot_name}_{title}'
+
+        ax[0].plot(p_corrs, after_windows)
+        ax[0].set_title(f'{final_plot_name} Pearsons Corr')
+        ax[0].set(xlabel='Time in hours', ylabel='Correlation')
+
+        ax[1].plot(s_corrs, after_windows)
+        ax[1].set_title(f'{final_plot_name} Spearmans Corr')
+        ax[1].set(xlabel='Time in hours', ylabel='Correlation')
+        
+
+    def plot_func(self, presc, lab, absolute, time_diff, dirname, window=(1,24), title='', unit='mg/dL', labels=None, plot_name='', ax=None):
+        
         plot_data = pd.concat([absolute, time_diff], axis=1)
         plot_data = plot_data.rename(columns={0:'Lab values'})
 
         plot_data = plot_data[plot_data['timeFromPrescription'] > window[0]]
         plot_data = plot_data[plot_data['timeFromPrescription'] < window[1]]
 
-        sns.regplot(x = "timeFromPrescription", 
-                y = 'Lab values', 
-                data = plot_data, 
-                truncate=False)
-        plt.title(lab+'<>'+presc+'- '+ title+ ' \nchange in lab measurment and time taken for change')
-        plt.xlabel('Time in hours')
-        plt.ylabel(title+ ' change in '+lab+' lab measurment')
-        if labels is not None:
-            extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
-            plt.legend([extra, extra], (f'Pearson Correlation = {round(labels[0], 4)}', f'Spearmans Correlation = {round(labels[1], 4)}'))
-        plt.savefig(os.path.join(self.plots_path, dirname, title+".png"))
-        plt.clf()
+        if ax is None:
+            sns.regplot(x = "timeFromPrescription", 
+                    y = 'Lab values', 
+                    data = plot_data, 
+                    truncate=False)
+            plt.title(lab+'<>'+presc+'- '+ title+ ' \nchange in lab measurment and time taken for change')
+            plt.xlabel('Time in hours')
+            plt.ylabel(title+ ' change in '+lab+' lab measurment')
+            if labels is not None:
+                extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
+                plt.legend([extra, extra], (f'Pearson Correlation = {round(labels[0], 4)}', f'Spearmans Correlation = {round(labels[1], 4)}'))
+            plt.savefig(os.path.join(self.plots_path, dirname, plot_name+".png"))
+            plt.clf()
+        
+        else:
+            sns.regplot(
+                    ax_all=ax,
+                    x = "timeFromPrescription", 
+                    y = 'Lab values', 
+                    data = plot_data, 
+                    truncate=False)
+            ax.set_title(lab+'<>'+presc+'- '+ title+ ' \nchange in lab measurment and time taken for change')
+            ax.set(xlabel='Time in hours', ylabel=title+ ' change in '+lab+' lab measurment')
+            if labels is not None:
+                extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
+                ax.legend([extra, extra], (f'Pearson Correlation = {round(labels[0], 4)}', f'Spearmans Correlation = {round(labels[1], 4)}'))
 
 # ## Prescriptions
 

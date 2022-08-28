@@ -45,12 +45,17 @@ class TimeEffect(Analysis):
         self.logger = logging.getLogger(self.__class__.__name__)
         Analysis.__init__(self, path, dataset, table)
     
-    def correlations_analysis(self):
-        pass
+    def correlations_analysis(self, presc, lab, before_window=None, after_windows=None, val_type='absolute'):
+        p_corrs, s_corrs, time = list(), list(), list()
+        for after_window in after_windows:
+            p_corr, s_corr = self.get_correlation(presc, lab, before_window=before_window, after_window=after_window, val_type=val_type)
+            p_corrs.append(p_corr)
+            s_corrs.append(s_corr)
+        return p_corrs, s_corrs
 
-    def get_correlation(self, presc, lab, corr_type=None, val_type='absolute'):
+    def get_correlation(self, presc, lab, before_window=None, after_window=None, corr_type=None, val_type='absolute', method='estimate'):
 
-        values, time_diff = self.get_data(presc, lab, val_type)
+        values, time_diff = self.get_data(presc, lab, val_type, method=method, before_window=before_window, after_window=after_window)
 
         if corr_type=='pearson':
             '''
@@ -73,7 +78,7 @@ class TimeEffect(Analysis):
                 
         return corr
     
-    def get_data(self, presc, lab, type):
+    def get_data(self, presc, lab, type, method='estimate', before_window=None, after_window=None):
         '''
         Data Collection and processing
         '''
@@ -82,18 +87,45 @@ class TimeEffect(Analysis):
         # 'Glucose'
         drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table)
         subjects = list(drug_lab['SUBJECT_ID'].unique())
+        
+        if method=='before-after':            
+            if after_window is not None:
+                after1 = after1[(
+                        (
+                            after1['timeFromPrescription']>datetime.timedelta(hours=after_window[0])
+                        ) & (
+                            after1['timeFromPrescription']<datetime.timedelta(hours=after_window[1])
+                        )
+                    )]                   
+            if self.table=='inputevents':
+                before1['timeFromPrescription'] = before1['timeFromPrescription'].apply(lambda x : round(x.total_seconds()/3600, 2) )
+                before1 = before1.sort_values(by='timeFromPrescription')
+                before1 = before1.groupby('SUBJECT_ID').last().reset_index()['VALUENUM']      
+
+        if before_window is not None:
+            before1 = before1[(
+                    (
+                        before1['timeFromPrescription']<datetime.timedelta(hours=(-1*before_window[0]))
+                    ) & (
+                        before1['timeFromPrescription']>datetime.timedelta(hours=(-1*before_window[1]))
+                    )
+                )]
+            after1 = after1[after1['SUBJECT_ID'].isin(before1['SUBJECT_ID'])]
+            before1 = before1[before1['SUBJECT_ID'].isin(after1['SUBJECT_ID'])]
 
         reg_anal_res, _, _ = Analysis.interpolation(subjects, before1)
-
-        e = pd.DataFrame(reg_anal_res)
-        e = e.rename(columns={'subjectID':'SUBJECT_ID'})
-        estimate = e['estimated']
+        if method=='estimate':
+            e = pd.DataFrame(reg_anal_res)
+            e = e.rename(columns={'subjectID':'SUBJECT_ID'})
+            estimate = e['estimated']
+        if method=='before-after':
+            estimate = before1.rename(columns={'VALUENUM':'estimated'})['estimated']
 
         if self.table=='inputevents':
             after1['timeFromPrescription'] = after1['timeFromPrescription'].apply(lambda x : round(x.total_seconds()/3600, 2) )
             after = after1.groupby('SUBJECT_ID').first().reset_index()['VALUENUM']
-            time_diff = after1.groupby('SUBJECT_ID').first().reset_index()['timeFromPrescription']
-        elif self.table=='prescriptions':                
+            time_diff = after1.groupby('SUBJECT_ID').first().reset_index()['timeFromPrescription'] 
+        if self.table=='prescriptions':                
             merged = pd.merge(drug_lab, e, how='inner', on='SUBJECT_ID').rename(columns={'timeFromPrescription_y':'timeFromPrescription', 'VALUENUM_y':'VALUENUM'})
             time_diff = merged['timeFromPrescription']
             time_diff = time_diff.apply(lambda t : t.total_seconds()/3600)
