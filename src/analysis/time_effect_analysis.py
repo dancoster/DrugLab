@@ -85,6 +85,7 @@ class TimeEffect(Analysis):
 
         # 'Insulin - Regular'
         # 'Glucose'
+        print(self.patient_presc, self.lab_measurements)
         drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table)
         subjects = list(drug_lab['SUBJECT_ID'].unique())
 
