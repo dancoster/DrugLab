@@ -116,6 +116,7 @@ class TimeEffect(Analysis):
         reg_anal_res, _, _ = Analysis.interpolation(subjects, before1)
         if method=='estimate':
             e = pd.DataFrame(reg_anal_res)
+            print(e)
             e = e.rename(columns={'subjectID':'SUBJECT_ID'})
             estimate = e['estimated']
         if method=='before-after':
