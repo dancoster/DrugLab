@@ -204,7 +204,7 @@ class Analysis(SignificantPairs):
 
             before = before[before['HADM_ID'].isin(after['HADM_ID'])]
             after = after[after['HADM_ID'].isin(before['HADM_ID'])]
-            after = after[after['HADM_ID'].isin(between_meds_lab['HADM_ID'])]
+            # after = after[after['HADM_ID'].isin(between_meds_lab['HADM_ID'])]
 
             finaldf = negmergeddf.merge(posmergeddf,on=['HADM_ID','SUBJECT_ID'])
             
