@@ -88,7 +88,7 @@ class IEDataAnalysis(Analysis):
         uniqueLabTests = lab_measurements.LABEL.unique()
 
         for i, drug in enumerate(meds['MED']): 
-            temp_med = meds[meds['MED']==med]
+            temp_med = meds[meds['MED']==drug]
             if temp_med['COUNT'].iloc[0]<n_drugs:
                 break
             print(i, ' Medication: ', drug)
@@ -119,7 +119,7 @@ class IEDataAnalysis(Analysis):
         if num > n_medlab_pairs and before_num > (0.25*n_medlab_pairs) and after_num > (0.25*n_medlab_pairs): 
             
             before_reg_anal_res, before_lab_vals, before_time = Analysis.interpolation(subjects, before)
-            after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after)
+            after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after, type='after')
             estimated = np.array(pd.DataFrame(before_reg_anal_res)['estimated'])
             
             before_values = np.array([list(k)[-1] for k in before_lab_vals])
