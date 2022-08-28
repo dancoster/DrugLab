@@ -68,6 +68,7 @@ class TimeEffectVisualization(TimeEffect):
             percent, time_diff = self.get_data( presc, lab, 'percent', method='estimate', before_window=before_window)
             ratio, time_diff = self.get_data( presc, lab, 'ratio', method='estimate', before_window=before_window)
 
+            # Figures
             fig_all, ax_all = plt.subplots(3)
             fig_all.suptitle(f'Change analysis over after medication time \nfor {lab}<>{presc} pair (before window = {str(before_window)})')
 

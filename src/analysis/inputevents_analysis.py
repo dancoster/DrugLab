@@ -119,7 +119,7 @@ class IEDataAnalysis(Analysis):
         if num > n_medlab_pairs and before_num > (0.25*n_medlab_pairs) and after_num > (0.25*n_medlab_pairs): 
             
             before_reg_anal_res, before_lab_vals, before_time = Analysis.interpolation(subjects, before)
-            after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after, type='after')
+            after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after)
             estimated = np.array(pd.DataFrame(before_reg_anal_res)['estimated'])
             
             before_values = np.array([list(k)[-1] for k in before_lab_vals])
