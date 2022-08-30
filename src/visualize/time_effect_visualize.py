@@ -55,8 +55,8 @@ class TimeEffectVisualization(TimeEffect):
             comp_path = path
         
         # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
-        suffix = f'w{str(window[0])}-{str(window[1])}_bw{str(before_window_info[0])},{str(before_window_info[1])}_aw{str(after_window_info[0])},{str(after_window_info[1])}'
-        dirname = lab+"<>"+presc+"_"+suffix+"_"+self.suffix
+        suf = f'w{str(window[0])}-{str(window[1])}_bw{str(before_window_info[0])},{str(before_window_info[1])}_aw{str(after_window_info[0])},{str(after_window_info[1])}'
+        dirname = lab+"<>"+presc+"_"+suf+"_"+self.suffix
         dirpath = os.path.join(self.plots_path, dirname)
         if not os.path.isdir(dirpath):
             os.mkdir(dirpath)
