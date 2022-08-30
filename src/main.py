@@ -188,7 +188,7 @@ def main(args, BASE_DIR):
     if '-v' in args:
         pair = config['visualize']
         logger.info(f'Started visualizing time effect analysis {str(pair)} of pair results...')
-        plot_module = TimeEffectVisualization(BASE_DIR, data, table=config['table'])
+        plot_module = TimeEffectVisualization(BASE_DIR, data, table=config['table'], suffix=suffix)
         plot_module.visualize(config['visualize'][0], config['visualize'][1], window=config['window'], before_window_info=config['before_window'], after_window_info=config['after_window'])
         logger.info(f'Done visualizing.')
     
