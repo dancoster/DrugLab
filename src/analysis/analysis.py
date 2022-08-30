@@ -126,16 +126,14 @@ class Analysis(SignificantPairs):
         DataFrame: Contains all the rows of values and times for that particular drug lab apir
         '''
 
-        print(med1, med2)
-
         if type=='inputevents':
-
-            print('Enter')
             
             # Select patients who have taken the drug
             if med1 is not None and med2 is not None:
                 prescdf1 = med1[med1['LABEL']==medname]
                 prescdf2 = med2[med2['LABEL']==medname]
+
+                print(f'View data in labpairinig(): {prescdf1} {prescdf2}')
                 
                 # Select lab measurements of patients who have taken the drug
                 labdf = labdf[labdf['HADM_ID'].isin(prescdf1['HADM_ID'])]
