@@ -85,15 +85,15 @@ class TimeEffect(Analysis):
 
         # 'Insulin - Regular'
         # 'Glucose'
-        print(self.patient_presc, self.lab_measurements)
+        self.logger.info(self.patient_presc, self.lab_measurements)
         drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table, med1=self.data.med1, med2=self.data.med2, window=window)
 
-        print('Before Subjects: ', drug_lab, after1, before1)
+        self.logger.info('Before Subjects: ', drug_lab, after1, before1)
 
         subjects = list(drug_lab['SUBJECT_ID'].unique())
 
-        print('Data: ', after1, before1)
-        print('Params : ', after_window, before_window)
+        self.logger.info('Data: ', after1, before1)
+        self.logger.info('Params : ', after_window, before_window)
         
         if method=='before-after':            
             if after_window is not None:
@@ -104,7 +104,7 @@ class TimeEffect(Analysis):
                             after1['timeFromPrescription']<datetime.timedelta(hours=after_window[1])
                         )
                     )]                   
-                print(after1)
+                self.logger.info(after1)
             if self.table=='inputevents':
                 before1['timeFromPrescription'] = before1['timeFromPrescription'].apply(lambda x : round(x.total_seconds()/3600, 2) )
                 before1 = before1.sort_values(by='timeFromPrescription')
@@ -121,12 +121,12 @@ class TimeEffect(Analysis):
             after1 = after1[after1['SUBJECT_ID'].isin(before1['SUBJECT_ID'])]
             before1 = before1[before1['SUBJECT_ID'].isin(after1['SUBJECT_ID'])]
 
-        print(after1, before1)
+        self.logger.info(after1, before1)
 
         reg_anal_res, _, _ = Analysis.interpolation(subjects, before1)
         if method=='estimate':
             e = pd.DataFrame(reg_anal_res)
-            print(e)
+            self.logger.info(e)
             e = e.rename(columns={'subjectID':'SUBJECT_ID'})
             estimate = e['estimated']
         if method=='before-after':
