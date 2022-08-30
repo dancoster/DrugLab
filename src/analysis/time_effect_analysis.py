@@ -45,17 +45,17 @@ class TimeEffect(Analysis):
         self.logger = logging.getLogger(self.__class__.__name__)
         Analysis.__init__(self, path, dataset, table)
     
-    def correlations_analysis(self, presc, lab, before_window=None, after_windows=None, val_type='absolute'):
+    def correlations_analysis(self, presc, lab, window=(1,24), before_window=None, after_windows=None, val_type='absolute'):
         p_corrs, s_corrs, time = list(), list(), list()
         for after_window in after_windows:
-            p_corr, s_corr = self.get_correlation(presc, lab, before_window=before_window, after_window=after_window, val_type=val_type)
+            p_corr, s_corr = self.get_correlation(presc, lab, before_window=before_window, after_window=after_window, val_type=val_type, window=window)
             p_corrs.append(p_corr)
             s_corrs.append(s_corr)
         return p_corrs, s_corrs
 
-    def get_correlation(self, presc, lab, before_window=None, after_window=None, corr_type=None, val_type='absolute', method='estimate'):
+    def get_correlation(self, presc, lab, window=(1,24), before_window=None, after_window=None, corr_type=None, val_type='absolute', method='estimate'):
 
-        values, time_diff = self.get_data(presc, lab, val_type, method=method, before_window=before_window, after_window=after_window)
+        values, time_diff = self.get_data(presc, lab, val_type, method=method, before_window=before_window, after_window=after_window, window=window)
 
         if corr_type=='pearson':
             '''
@@ -87,6 +87,9 @@ class TimeEffect(Analysis):
         # 'Glucose'
         print(self.patient_presc, self.lab_measurements)
         drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table, med1=self.data.med1, med2=self.data.med2, window=window)
+
+        print('Before Subjects: ', drug_lab, after1, before1)
+
         subjects = list(drug_lab['SUBJECT_ID'].unique())
 
         print('Data: ', after1, before1)

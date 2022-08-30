@@ -77,15 +77,15 @@ class TimeEffectVisualization(TimeEffect):
             fig_corrs.suptitle(f'Correlation Change analysis over after medication time \nfor {lab}<>{presc} pair')  
 
             # Absolute
-            corrs = self.get_correlation(presc, lab, val_type='absolute')
+            corrs = self.get_correlation(presc, lab, val_type='absolute', window=window)
             absolute1, time_diff3 = self.remove_outlier(absolute, time_diff)
             self.plot_func(presc, lab, absolute1, time_diff3, dirname, window=window, title='Absolute', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[0])
 
-            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='absolute')
+            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='absolute', window=window)
             self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[0], title='Absolute', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
 
             # Percentage
-            corrs = self.get_correlation(presc, lab, val_type='percent')
+            corrs = self.get_correlation(presc, lab, val_type='percent', window=window)
             percent1, time_diff1 = self.remove_outlier(percent, time_diff)
             self.plot_func(presc, lab, percent1, time_diff1, dirname, window=window, title='Percentage', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[1])
 
@@ -93,11 +93,11 @@ class TimeEffectVisualization(TimeEffect):
             self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[1], title='Percentage', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
             
             # Ratio
-            corrs = self.get_correlation(presc, lab, val_type='ratio')
+            corrs = self.get_correlation(presc, lab, val_type='ratio', window=window)
             ratio1, time_diff2 = self.remove_outlier(ratio, time_diff)
             self.plot_func(presc, lab, ratio1, time_diff2, dirname, window=window, title='Ratio', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[2])
 
-            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='ratio')
+            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='ratio', window=window)
             self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[2], title='Ratio', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
 
             fig_all.savefig(os.path.join(dirpath, f'all_after_change_analysis_bw{str(before_window)}.png'))
