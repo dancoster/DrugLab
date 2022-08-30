@@ -69,7 +69,7 @@ class TimeEffectVisualization(TimeEffect):
             fig_all, ax_all = plt.subplots(3)
             fig_all.suptitle(f'Change analysis over after medication time \nfor {lab}<>{presc} pair (before window = {str(before_window)})')
 
-            fig_corrs, ax_corrs = plt.subplot(3, 2)
+            fig_corrs, ax_corrs = plt.subplots(3, 2)
             fig_corrs.suptitle(f'Correlation Change analysis over after medication time \nfor {lab}<>{presc} pair')  
 
             # Absolute        
