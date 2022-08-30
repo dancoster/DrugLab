@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 from sklearn import datasets, linear_model, metrics
 
 from analysis.significant import SignificantPairs
+import logging
+
+logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class: %(name)s Func: %(funcName)s] %(levelname)s : %(message)s')
 
 class Analysis(SignificantPairs):
 
@@ -21,6 +24,7 @@ class Analysis(SignificantPairs):
         self.data = dataset
         self.table = type
         self.suffix = f'_{suffix}'
+        self.logger = logging.getLogger(self.__class__.__name__)
         SignificantPairs.__init__(self, stats_test, suffix=suffix)
 
     def analyse(self, n_subs=200, n_meds=50, window=(1,72), test_type=None):
@@ -49,6 +53,10 @@ class Analysis(SignificantPairs):
         if test_type is None:
             for i in self.enum.keys():
                 merged = self.get_significant_pairs(res_analysis, i, res_path)
+            try:
+                self.get_intersection(res_path)
+            except:
+                self.logger.error('Error in generating intersection of all tests (trends, interpolated, absolute)')
         else:
             merged = self.get_significant_pairs(res_analysis, test_type, res_path)
  

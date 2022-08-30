@@ -8,7 +8,9 @@ from statsmodels.stats.multitest import multipletests
 
 from tqdm import tqdm
 import os
+import logging
 
+logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class: %(name)s Func: %(funcName)s] %(levelname)s : %(message)s')
 
 class SignificantPairs:
 
@@ -28,6 +30,23 @@ class SignificantPairs:
             'mannwhitney':'Ttest-pvalue',
             'ttest':'Mannwhitney-pvalue'
         }
+        self.logger = logging.getLogger(self.__class__.__name__)
+    
+    def get_intersection(self, res_path):
+        # res_path, self.suffix, self.stats_test, test_type
+        sig_pairs = {}
+        try:
+            for test_type in self.enum.keys():
+                sig_pairs[test_type] = pd.read_csv((f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_{test_type}.csv'))
+        except:
+            self.logger.error(f'File not found or other error realted to querying significant paris of typ "{test_type}"')
+            return None
+        else:
+            final_all = pd.merge(pd.merge(sig_pairs['absolute'], sig_pairs['interpolated'], how='inner', on=['Lab Test', 'Medication']), sig_pairs['trend'], how='inner', on=['Lab Test', 'Medication'])
+            final_trend_absolute = pd.merge(sig_pairs['absolute'], sig_pairs['trend'], how='inner', on=['Lab Test', 'Medication'])
+
+            final_all.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_trends_interpolate_absolute')
+            final_trend_absolute.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_trends_absolute')
     
     def get_name(self, test_type):
         return f'{self.enum[test_type][0]}{self.enum_stats[self.stats_test]}'
