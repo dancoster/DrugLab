@@ -120,7 +120,7 @@ class TimeEffectVisualization(TimeEffect):
                 self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[2], title='Ratio', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
 
             fig_all.savefig(os.path.join(dirpath, f'all_after_change_analysis_bw{str(before_window)}.png'))
-            fig_corrs.savefig(f'corrs_analysis_bw{str(before_window)}_awi{str(after_window_info)}.png')
+            fig_corrs.savefig(os.path.join(dirpath, f'corrs_analysis_bw{str(before_window)}_awi{str(after_window_info)}.png'))
 
     def plot_corrs(self, p_corrs, s_corrs, after_windows, ax, title='', plot_name='',  after_window_info=None):
 
