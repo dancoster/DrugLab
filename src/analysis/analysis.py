@@ -129,6 +129,8 @@ class Analysis(SignificantPairs):
         print(med1, med2)
 
         if type=='inputevents':
+
+            print('Enter')
             
             # Select patients who have taken the drug
             if med1 is not None and med2 is not None:
