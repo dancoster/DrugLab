@@ -66,6 +66,18 @@ def config_args(args, BASE_DIR, DATA):
         config['between_meds'] = (1, 2)
     else:
         config['between_meds'] = tuple([int(i) for i in config['between_meds']])
+    
+    config['before_window'] = get_arg_val('--before-window', args, k=2)
+    if config['before_window'] is None:
+        config['before_window'] = (2, 4)
+    else:
+        config['before_window'] = tuple([int(i) for i in config['before_window']])
+    
+    config['after_window'] = get_arg_val('--after-window', args, k=2)
+    if config['after_window'] is None:
+        config['after_window'] = (2, 5)
+    else:
+        config['after_window'] = tuple([int(i) for i in config['after_window']])
 
     config['stratify'] = get_arg_val('--stratify', args, 0)
     if config['stratify']:
@@ -177,7 +189,7 @@ def main(args, BASE_DIR):
         pair = config['visualize']
         logger.info(f'Started visualizing time effect analysis {str(pair)} of pair results...')
         plot_module = TimeEffectVisualization(BASE_DIR, data, table=config['table'])
-        plot_module.visualize(config['visualize'][0], config['visualize'][1], window=config['window'])
+        plot_module.visualize(config['visualize'][0], config['visualize'][1], window=config['window'], before_window_info=config['before_window'], after_window_info=config['after_window'])
         logger.info(f'Done visualizing.')
     
 
