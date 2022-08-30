@@ -50,10 +50,6 @@ class TimeEffectVisualization(TimeEffect):
         Visualize and plotting
         '''
         
-        comp_path = self.plots_path
-        if path is not None:
-            comp_path = path
-        
         # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         suf = f'w{str(window[0])}-{str(window[1])}_bw{str(before_window_info[0])},{str(before_window_info[1])}_aw{str(after_window_info[0])},{str(after_window_info[1])}'
         dirname = lab+"<>"+presc+"_"+suf+"_"+self.suffix
