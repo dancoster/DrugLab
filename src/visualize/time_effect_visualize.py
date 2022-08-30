@@ -1,3 +1,4 @@
+from tkinter import W
 import pandas as pd
 import datetime
 import random
@@ -64,9 +65,9 @@ class TimeEffectVisualization(TimeEffect):
 
         for i, before_window in enumerate(before_windows):            
         
-            absolute, time_diff = self.get_data( presc, lab, 'absolute', method='estimate', before_window=before_window)
-            percent, time_diff = self.get_data( presc, lab, 'percent', method='estimate', before_window=before_window)
-            ratio, time_diff = self.get_data( presc, lab, 'ratio', method='estimate', before_window=before_window)
+            absolute, time_diff = self.get_data( presc, lab, 'absolute', method='estimate', before_window=before_window, window=window)
+            percent, time_diff = self.get_data( presc, lab, 'percent', method='estimate', before_window=before_window, window=window)
+            ratio, time_diff = self.get_data( presc, lab, 'ratio', method='estimate', before_window=before_window, window=window)
 
             # Figures
             fig_all, ax_all = plt.subplots(3)

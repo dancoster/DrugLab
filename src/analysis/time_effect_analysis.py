@@ -78,7 +78,7 @@ class TimeEffect(Analysis):
                 
         return corr
     
-    def get_data(self, presc, lab, type, method='estimate', before_window=None, after_window=None):
+    def get_data(self, presc, lab, type, method='estimate', before_window=None, after_window=None, window=(1,24)):
         '''
         Data Collection and processing
         '''
@@ -86,7 +86,7 @@ class TimeEffect(Analysis):
         # 'Insulin - Regular'
         # 'Glucose'
         print(self.patient_presc, self.lab_measurements)
-        drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table)
+        drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table, med1=self.data.med1, med2=self.data.med2, window=window)
         subjects = list(drug_lab['SUBJECT_ID'].unique())
 
         print('Data: ', after1, before1)
