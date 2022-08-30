@@ -133,7 +133,7 @@ class Analysis(SignificantPairs):
                 prescdf1 = med1[med1['LABEL']==medname]
                 prescdf2 = med2[med2['LABEL']==medname]
 
-                print(f'View data in labpairinig(): {prescdf1} {prescdf2}')
+                # print(f'View data in labpairinig(): {prescdf1} {prescdf2}')
                 
                 # Select lab measurements of patients who have taken the drug
                 labdf = labdf[labdf['HADM_ID'].isin(prescdf1['HADM_ID'])]

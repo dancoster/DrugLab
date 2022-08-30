@@ -49,6 +49,8 @@ class TimeEffect(Analysis):
         p_corrs, s_corrs, time = list(), list(), list()
         for after_window in after_windows:
             p_corr, s_corr = self.get_correlation(presc, lab, before_window=before_window, after_window=after_window, val_type=val_type, window=window)
+            if p_corrs is None and s_corrs is None:
+                continue
             p_corrs.append(p_corr)
             s_corrs.append(s_corr)
         return p_corrs, s_corrs
@@ -56,6 +58,9 @@ class TimeEffect(Analysis):
     def get_correlation(self, presc, lab, window=(1,24), before_window=None, after_window=None, corr_type=None, val_type='absolute', method='estimate'):
 
         values, time_diff = self.get_data(presc, lab, val_type, method=method, before_window=before_window, after_window=after_window, window=window)
+
+        if values is None and time_diff is None:
+            return None, None
 
         if corr_type=='pearson':
             '''
@@ -87,12 +92,16 @@ class TimeEffect(Analysis):
         # 'Glucose'
         drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table, med1=self.data.med1, med2=self.data.med2, window=window)
 
-        self.logger.info(f'Before Subjects: , {drug_lab}, {after1}, {before1}')
+        if drug_lab is None and before1 is None and after1 is None:
+            self.logger.info(f'{before_window} has no data for the given {presc}<>{lab} pair.')
+            return None, None
+
+        # self.logger.info(f'Before Subjects: , {drug_lab}, {after1}, {before1}')
 
         subjects = list(drug_lab['SUBJECT_ID'].unique())
 
-        self.logger.info(f'Data: , {after1}, {before1}')
-        self.logger.info(f'Params : , {after_window}, {before_window}')
+        # self.logger.info(f'Data: , {after1}, {before1}')
+        # self.logger.info(f'Params : , {after_window}, {before_window}')
         
         if method=='before-after':            
             if after_window is not None:
@@ -119,12 +128,12 @@ class TimeEffect(Analysis):
             after1 = after1[after1['SUBJECT_ID'].isin(before1['SUBJECT_ID'])]
             before1 = before1[before1['SUBJECT_ID'].isin(after1['SUBJECT_ID'])]
 
-        self.logger.info(f'{after1}, {before1}')
+        # self.logger.info(f'{after1}, {before1}')
 
         reg_anal_res, _, _ = Analysis.interpolation(subjects, before1)
         if method=='estimate':
             e = pd.DataFrame(reg_anal_res)
-            self.logger.info(f'{e}')
+            # self.logger.info(f'{e}')
             e = e.rename(columns={'subjectID':'SUBJECT_ID'})
             estimate = e['estimated']
         if method=='before-after':

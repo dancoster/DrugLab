@@ -64,10 +64,6 @@ class TimeEffectVisualization(TimeEffect):
 
 
         for i, before_window in enumerate(before_windows):            
-        
-            absolute, time_diff = self.get_data( presc, lab, 'absolute', method='estimate', before_window=before_window, window=window)
-            percent, time_diff = self.get_data( presc, lab, 'percent', method='estimate', before_window=before_window, window=window)
-            ratio, time_diff = self.get_data( presc, lab, 'ratio', method='estimate', before_window=before_window, window=window)
 
             # Figures
             fig_all, ax_all = plt.subplots(3)
@@ -76,29 +72,50 @@ class TimeEffectVisualization(TimeEffect):
             fig_corrs, ax_corrs = plt.subplot(3, 2)
             fig_corrs.suptitle(f'Correlation Change analysis over after medication time \nfor {lab}<>{presc} pair')  
 
-            # Absolute
-            corrs = self.get_correlation(presc, lab, val_type='absolute', window=window)
-            absolute1, time_diff3 = self.remove_outlier(absolute, time_diff)
-            self.plot_func(presc, lab, absolute1, time_diff3, dirname, window=window, title='Absolute', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[0])
+            # Absolute        
+            try:
+                absolute, time_diff = self.get_data( presc, lab, 'absolute', method='estimate', before_window=before_window, window=window)
+                if absolute is None and time_diff is None:
+                    raise Exception("No data")
+            except:
+                self.logger.info(f'..')
+            else:
+                corrs = self.get_correlation(presc, lab, val_type='absolute', window=window)
+                absolute1, time_diff3 = self.remove_outlier(absolute, time_diff)
+                self.plot_func(presc, lab, absolute1, time_diff3, dirname, window=window, title='Absolute', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[0])
 
-            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='absolute', window=window)
-            self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[0], title='Absolute', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
+                p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='absolute', window=window)
+                self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[0], title='Absolute', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
 
             # Percentage
-            corrs = self.get_correlation(presc, lab, val_type='percent', window=window)
-            percent1, time_diff1 = self.remove_outlier(percent, time_diff)
-            self.plot_func(presc, lab, percent1, time_diff1, dirname, window=window, title='Percentage', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[1])
+            try:
+                percent, time_diff = self.get_data( presc, lab, 'percent', method='estimate', before_window=before_window, window=window)
+                if absolute is None and time_diff is None:
+                    raise Exception("No data")
+            except:
+                self.logger.info(f'..')
+            else:
+                corrs = self.get_correlation(presc, lab, val_type='percent', window=window)                
+                percent1, time_diff1 = self.remove_outlier(percent, time_diff)
+                self.plot_func(presc, lab, percent1, time_diff1, dirname, window=window, title='Percentage', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[1])
 
-            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='percent')
-            self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[1], title='Percentage', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
+                p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='percent')
+                self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[1], title='Percentage', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
             
             # Ratio
-            corrs = self.get_correlation(presc, lab, val_type='ratio', window=window)
-            ratio1, time_diff2 = self.remove_outlier(ratio, time_diff)
-            self.plot_func(presc, lab, ratio1, time_diff2, dirname, window=window, title='Ratio', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[2])
+            try:
+                ratio, time_diff = self.get_data( presc, lab, 'ratio', method='estimate', before_window=before_window, window=window)
+                if absolute is None and time_diff is None:
+                    raise Exception("No data")
+            except:
+                self.logger.info(f'..')
+            else:
+                corrs = self.get_correlation(presc, lab, val_type='ratio', window=window)
+                ratio1, time_diff2 = self.remove_outlier(ratio, time_diff)
+                self.plot_func(presc, lab, ratio1, time_diff2, dirname, window=window, title='Ratio', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[2])
 
-            p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='ratio', window=window)
-            self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[2], title='Ratio', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
+                p_corrs, s_corrs = self.correlations_analysis(presc, lab, val_type='ratio', window=window)
+                self.plot_corrs(p_corrs, s_corrs, after_windows, ax_corrs[2], title='Ratio', plot_name=f'{lab}<>{presc}_bw{str(before_window)}', after_window_info=after_window_info )
 
             fig_all.savefig(os.path.join(dirpath, f'all_after_change_analysis_bw{str(before_window)}.png'))
             fig_corrs.savefig(f'corrs_analysis_bw{str(before_window)}_awi{str(after_window_info)}.png')
