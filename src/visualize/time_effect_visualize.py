@@ -80,6 +80,7 @@ class TimeEffectVisualization(TimeEffect):
             except:
                 self.logger.info(f'..')
             else:
+                self.logger.info(f'Data found for {presc}<>{lab} pair in {before_window} before window')
                 corrs = self.get_correlation(presc, lab, val_type='absolute', window=window)
                 absolute1, time_diff3 = self.remove_outlier(absolute, time_diff)
                 self.plot_func(presc, lab, absolute1, time_diff3, dirname, window=window, title='Absolute', labels=corrs, plot_name=f'{lab}<>{presc}_bw{str(before_window)}', ax=ax_all[0])
