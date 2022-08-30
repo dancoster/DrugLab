@@ -89,7 +89,7 @@ class TimeEffect(Analysis):
         drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table)
         subjects = list(drug_lab['SUBJECT_ID'].unique())
 
-        print(after1, before1)
+        print(after1, before1, after_window, before_window)
         
         if method=='before-after':            
             if after_window is not None:
@@ -100,6 +100,7 @@ class TimeEffect(Analysis):
                             after1['timeFromPrescription']<datetime.timedelta(hours=after_window[1])
                         )
                     )]                   
+                print(after1)
             if self.table=='inputevents':
                 before1['timeFromPrescription'] = before1['timeFromPrescription'].apply(lambda x : round(x.total_seconds()/3600, 2) )
                 before1 = before1.sort_values(by='timeFromPrescription')
