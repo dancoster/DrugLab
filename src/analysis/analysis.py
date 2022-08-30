@@ -126,6 +126,8 @@ class Analysis(SignificantPairs):
         DataFrame: Contains all the rows of values and times for that particular drug lab apir
         '''
 
+        print(med1, med2)
+
         if type=='inputevents':
             
             # Select patients who have taken the drug
