@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.INFO, format=f'%(module)s/%(filename)s [Class:
 
 class TimeEffect(Analysis):
 
-    def __init__(self, path, dataset, table):
+    def __init__(self, path, dataset, table, suffix):
         self.data = dataset
 
         self.patient_presc = None
@@ -43,7 +43,7 @@ class TimeEffect(Analysis):
             self.meds = self.data.meds[table][:20]
         
         self.logger = logging.getLogger(self.__class__.__name__)
-        Analysis.__init__(self, path, dataset, table)
+        Analysis.__init__(self, path, dataset, table, suffix=suffix)
     
     def correlations_analysis(self, presc, lab, window=(1,24), before_window=None, after_windows=None, val_type='absolute'):
         p_corrs, s_corrs, time = list(), list(), list()

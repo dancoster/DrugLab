@@ -35,10 +35,9 @@ class TimeEffectVisualization(TimeEffect):
         '''       
         self.logger = logging.getLogger(self.__class__.__name__) 
         self.BASE_DIR = BASE_DIR
-        self.plots_path = os.path.join(self.BASE_DIR, 'plots', table)   
-        self.suffix = suffix  
+        self.plots_path = os.path.join(self.BASE_DIR, 'plots', table) 
         
-        TimeEffect.__init__(self, self.plots_path, dataset, table)
+        TimeEffect.__init__(self, self.plots_path, dataset, table, suffix=suffix)
     
     def get_windows(self, window, before_window_info, after_window_info):
         before_windows = [(val, val+before_window_info[0]) for i, val in enumerate(range(window[0], before_window_info[0]*before_window_info[1]+window[0], before_window_info[0]))]
