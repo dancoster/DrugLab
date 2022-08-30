@@ -154,8 +154,7 @@ class Analysis(SignificantPairs):
 
                 between_meds_lab = l2
                 prescdf = prescdf1   
-                print(f'Analysis Func: {between_meds_lab}')
-                print(f'Analysis Func: {prescdf}')
+                # print(f'Medication<>Lab Pairs Function: found data for {}')
 
             else:
                 prescdf = prescdf[prescdf['LABEL']==medname]
