@@ -152,6 +152,8 @@ class Analysis(SignificantPairs):
 
                 between_meds_lab = l2
                 prescdf = prescdf1   
+                print(f'Analysis Func: {between_meds_lab}')
+                print(f'Analysis Func: {prescdf}')
 
             else:
                 prescdf = prescdf[prescdf['LABEL']==medname]
