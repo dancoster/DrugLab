@@ -6,7 +6,6 @@ from scipy.stats import mannwhitneyu
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
-from tqdm import tqdm
 import os
 import logging
 
@@ -45,8 +44,8 @@ class SignificantPairs:
             final_all = pd.merge(pd.merge(sig_pairs['absolute'], sig_pairs['interpolated'], how='inner', on=['Lab Test', 'Medication']), sig_pairs['trend'], how='inner', on=['Lab Test', 'Medication'])
             final_trend_absolute = pd.merge(sig_pairs['absolute'], sig_pairs['trend'], how='inner', on=['Lab Test', 'Medication'])
 
-            final_all.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_trends_interpolate_absolute')
-            final_trend_absolute.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_trends_absolute')
+            final_all.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_trends_interpolate_absolute.csv')
+            final_trend_absolute.to_csv(f'{res_path[:-4]}{self.suffix}_significant_{self.stats_test}_trends_absolute.csv')
     
     def get_name(self, test_type):
         return f'{self.enum[test_type][0]}{self.enum_stats[self.stats_test]}'
@@ -57,19 +56,23 @@ class SignificantPairs:
     def bonferroni(self, pvals, res_analysis):
         bonferroni_analysis = multipletests(pvals, alpha=0.05, method='bonferroni')
         reject, pvals_corrected, _, alphacBonf = bonferroni_analysis
-        res_analysis['Bonferroni Corrected'] = pvals_corrected
+        res_analysis['Bonferroni Corrected'] = pd.Series(pvals_corrected)
+        print(pd.Series(pvals_corrected).describe())
         significant = res_analysis[reject]
+        print(significant)
         return significant
 
     def fdr1_benjamini(self, pvals, res_analysis):
         fdr1_analysis = multipletests(pvals, alpha=0.05, method='fdr_bh')
         reject1, pvals_corrected1, _, alphacBonf = fdr1_analysis
-        res_analysis['FDR Benjamini Corrected'] = pvals_corrected1
+        res_analysis['FDR Benjamini Corrected'] = pd.Series(pvals_corrected1)
+        print(pd.Series(pvals_corrected1).describe())
         significant_fdr = res_analysis[reject1]
         return significant_fdr
     
     def absolute_significant(self, res_analysis, test_type, res_path):
         pvals = res_analysis[self.get_name(test_type)]
+        print(pvals.describe())
         merged = pd.merge(self.bonferroni(pvals, res_analysis), self.fdr1_benjamini(pvals, res_analysis), how='inner').drop(
                 columns=['Lab Test Before(std)', 'Time Before(std)', 'Lab Test After(std)', 'Time After(std)', 'Ttest-pvalue', 'Estimated (std)','Estimated (mean)', 'Mannwhitney-pvalue',	'Before',	'After',	'Coef-Ttest-pvalue'	,'Coef-Mannwhitney-pvalue']
             ).sort_values(
@@ -81,6 +84,7 @@ class SignificantPairs:
     
     def interpolated_significant(self, res_analysis, test_type, res_path):
         pvals = res_analysis[self.get_name(test_type)]
+        print(pvals.describe())
         merged = pd.merge(self.bonferroni(pvals, res_analysis), self.fdr1_benjamini(pvals, res_analysis), how='inner').drop(
                 columns=['Lab Test After(std)', 'Time After(std)', 'Absolute-Ttest-pvalue',	'Absolute-Mannwhitney-pvalue',	'Before',	'After',	'Coef-Ttest-pvalue'	,'Coef-Mannwhitney-pvalue']
         )
@@ -96,6 +100,7 @@ class SignificantPairs:
         res_analysis = res_analysis[['Medication', 'Lab Test', 'Coef-Mannwhitney-pvalue', 'Coef-Ttest-pvalue', 'Before', 'After',
        'Number of patients']]
         pvals = res_analysis[self.get_name(test_type)]
+        print(pvals.describe())
         merged = pd.merge(self.bonferroni(pvals, res_analysis), self.fdr1_benjamini(pvals, res_analysis), how='inner').sort_values(
             ['Number of patients'], ascending=False
         )

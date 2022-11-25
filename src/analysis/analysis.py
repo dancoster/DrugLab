@@ -1,3 +1,4 @@
+from typing import final
 import pandas as pd
 import datetime
 import random
@@ -8,9 +9,14 @@ from tqdm import tqdm
 import os
 import gzip
 import csv
+import sys
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn import datasets, linear_model, metrics
+
+import warnings
+
+warnings.filterwarnings("ignore")
 
 from analysis.significant import SignificantPairs
 import logging
@@ -27,41 +33,49 @@ class Analysis(SignificantPairs):
         self.logger = logging.getLogger(self.__class__.__name__)
         SignificantPairs.__init__(self, stats_test, suffix=suffix)
 
+    def print_info(self, med, labTest, finalDF, before, after):
+        self.logger.info(f"{med}<>{labTest} mix - {finalDF}")
+        self.logger.info(f"{med}<>{labTest} Before - {before}")
+        self.logger.info(f"{med}<>{labTest} After - {after}")
+    
     def analyse(self, n_subs=200, n_meds=50, window=(1,72), test_type=None):
 
         table = self.table
-        # suffix = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         suffix = f'p{str(n_subs)}_m{str(n_meds)}_w{str(window[0])}-{str(window[1])}{self.suffix}'
         res_path = os.path.join(self.RESULTS, f'{table}_before_after_interpolation_trend_{suffix}.csv')
         res_analysis = None
-        if os.path.exists(res_path):
-            res_analysis = pd.read_csv(res_path)
-            res_analysis = res_analysis.drop(columns=['Unnamed: 0'])
-        else:
-            patient_presc = self.data.patient_presc[table]
-            lab_measurements = self.data.lab_measurements[table]
-            meds = self.data.meds[table]
+        patient_presc = self.data.patient_presc[table]
+        lab_measurements = self.data.lab_measurements[table]
+        meds = self.data.med_counts[table]
 
-            ## Generating Lab Test<>Meds Pairings
-            # finalDF, before, after = Analysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total', type=table)
+        ## Generating Lab Test<>Meds Pairings
+        finalDF, before, after = Analysis.labpairing('NaCl 0.9%', patient_presc, lab_measurements, 'Calcium, Total', type=table)
 
-            ## Final Results - Reading before and after, regression and trend
-            res_analysis = self.results_analysis(patient_presc, lab_measurements, meds, n_medlab_pairs = n_subs, n_meds=n_meds, window=window)
+        ## Final Results - Reading before and after, regression and trend
+        res_analysis = self.results_analysis(patient_presc, lab_measurements, meds, n_medlab_pairs = n_subs, n_meds=n_meds, window=window)
+        # self.logger.info(f"Res Analysis : {res_analysis}")
 
-            res_analysis.to_csv(res_path)
-
+        res_analysis.to_csv(res_path)
         if test_type is None:
             for i in self.enum.keys():
                 merged = self.get_significant_pairs(res_analysis, i, res_path)
+                self.logger.info(f"Merged Significant {merged.shape}: {merged}")
             try:
-                self.get_intersection(res_path)
+                if merged.shape[0]>=1:
+                    self.get_intersection(res_path)
             except:
                 self.logger.error('Error in generating intersection of all tests (trends, interpolated, absolute)')
         else:
             merged = self.get_significant_pairs(res_analysis, test_type, res_path)
  
     def results_generator(self, med, patient_presc, lab_measurements, labTest, n_medlab_pairs=2000, window=(1,72), hours=False):
-        drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, med1=self.data.med1, med2=self.data.med2, type=self.table, window=window)
+        # drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, med1=self.data.med1, med2=self.data.med2, type=self.table, window=window)
+        drug_lab, before, after = Analysis.labpairing(med, patient_presc, lab_measurements, labTest, type=self.table, window=window)
+        print(drug_lab.shape, before.shape, after.shape)
+
+        # self.logger.info(f"{med}<>{labTest} mix - {drug_lab}")
+        # self.logger.info(f"{med}<>{labTest} Before - {before}")
+        # self.logger.info(f"{med}<>{labTest} After - {after}")
 
         if drug_lab is not None:
             subjects = before['SUBJECT_ID'].unique()
@@ -69,8 +83,12 @@ class Analysis(SignificantPairs):
             num = drug_lab['SUBJECT_ID'].unique().shape[0]
             before_num = before['SUBJECT_ID'].unique().shape[0]
             after_num = after['SUBJECT_ID'].unique().shape[0]
+            
+            # self.logger.info(f"{med}<>{labTest} mix - {num}")
+            # self.logger.info(f"{med}<>{labTest} Before - {before_num}")
+            # self.logger.info(f"{med}<>{labTest} After - {after_num}")
 
-            if num > n_medlab_pairs and before_num > (0.25*n_medlab_pairs) and after_num > (0.25*n_medlab_pairs): 
+            if before_num > (0.25*n_medlab_pairs) and after_num > (0.25*n_medlab_pairs): 
                 
                 before_reg_anal_res, before_lab_vals, before_time = Analysis.interpolation(subjects, before, plot=hours, type='before')
                 after_reg_anal_res, after_lab_vals, after_time = Analysis.interpolation(subjects, after, type='after')
@@ -106,17 +124,21 @@ class Analysis(SignificantPairs):
         final_res = []
         after_vals = []
 
-        for i, med in enumerate(meds['MED']):
-            temp_med = meds[meds['MED']==med]
-            if temp_med['COUNT'].iloc[0]<n_meds:
-                break
-            print(i, ' MED: ', med)
+        # self.print_info(med, labTest, finalDF, before, after)
+        final_meds = list(meds[meds["COUNT"]>n_meds].sort_values("COUNT", ascending=False)["MED"])
+        
+        for i, med in enumerate(final_meds):
+            self.logger.info(f"{i} ")
+            print(f"MED: {med}")
             for j in tqdm(range(uniqueLabTests.shape[0])):
                 labTest = uniqueLabTests[j]
                 row = self.results_generator(med, patient_presc, lab_measurements, labTest, n_medlab_pairs, window)
                 if row is not None:
                     final_res.append(row)
+                # self.logger.info(f"{med}<>{labTest} - {row}")
+
         final_res_df = pd.DataFrame(final_res, columns=['Medication','Lab Test', 'Number of patients', 'MSE', 'RMSE', 'Lab Test Before(mean)','Lab Test Before(std)','Time Before(mean)','Time Before(std)', 'Estimated (mean)','Estimated (std)', 'Lab Test After(mean)','Lab Test After(std)','Time After(mean)','Time After(std)', 'Absolute-Ttest-pvalue', 'Absolute-Mannwhitney-pvalue', 'Ttest-pvalue', 'Mannwhitney-pvalue', 'Before','After', 'Coef-Ttest-pvalue', 'Coef-Mannwhitney-pvalue'])
+        self.logger.info(final_res_df.sort_values("Number of patients"))
         return final_res_df
 
 
@@ -133,6 +155,8 @@ class Analysis(SignificantPairs):
         Returns:
         DataFrame: Contains all the rows of values and times for that particular drug lab apir
         '''
+
+        between_meds_lab = None
 
         if type=='inputevents':
             
@@ -174,8 +198,9 @@ class Analysis(SignificantPairs):
             # Selects the lab measurement entered
             drug_lab_specific = labdf[labdf['LABEL']==labname]
             mergeddf = pd.merge(drug_lab_specific, prescdf, on=['HADM_ID','SUBJECT_ID'])
+            # print(f"MergedDF {medname}<>{labname} - {mergeddf.shape[0]} and {drug_lab_specific.shape[0]}")
 
-            # Get time from prescription and choose before and after lab measurements (within k days)
+            # Get time from prescription and choose before and after lab measurements (within k hours)
             mergeddf['timeFromPrescription'] = mergeddf['CHARTTIME'] - mergeddf['STARTTIME']
             mergeddf = mergeddf[(
                     (
@@ -192,6 +217,7 @@ class Analysis(SignificantPairs):
                 )]
             posmergeddf = mergeddf.loc[mergeddf.timeFromPrescription > datetime.timedelta(hours=0)]
             negmergeddf = mergeddf.loc[mergeddf.timeFromPrescription < datetime.timedelta(hours=0)]
+            # print(f"MergedDF (Window filtered {window}) {medname}<>{labname} - {mergeddf.shape[0]}")
 
             # posmergeddf = posmergeddf[ posmergeddf[['HADM_ID']].isin(between_meds_lab[['HADM_ID']]) ]
 
@@ -215,9 +241,11 @@ class Analysis(SignificantPairs):
 
             before = before[before['HADM_ID'].isin(after['HADM_ID'])]
             after = after[after['HADM_ID'].isin(before['HADM_ID'])]
-            after = after[after['HADM_ID'].isin(between_meds_lab['HADM_ID'])]
+            if between_meds_lab is not None:
+                after = after[after['HADM_ID'].isin(between_meds_lab['HADM_ID'])]
 
             finaldf = negmergeddf.merge(posmergeddf,on=['HADM_ID','SUBJECT_ID'])
+            # print(f"End final df (Window filtered {window}) {medname}<>{labname} - {finaldf.shape[0]}")
             
             return finaldf, before, after
         

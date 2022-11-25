@@ -35,20 +35,21 @@ class Dataset:
         self.logger.info(f'Started loading data from {name} dataset...')
         
         # Choose n random subjects
-        self.dob_patient_bins = self.load_data('dob_patient_bins')
-        random.seed(random_seed)
-        self.subjects_2k = random.sample(list(self.dob_patient_bins['SUBJECT_ID'].value_counts().keys()), n_sub)
+        # self.dob_patient_bins = self.load_data('dob_patient_bins')
+        # random.seed(random_seed)
+        # self.subjects_2k = random.sample(list(self.dob_patient_bins['SUBJECT_ID'].value_counts().keys()), n_sub)
         
         # dataset data
         self.admissions = self.load_data('admissions')
         self.labevents = self.load_data('labevents')
         self.meds = dict()
+        self.med_counts = dict()
 
         if preprocessed:
             self.inputevents = self.load_data('inputevents_mv_preprocessed')
         else:
             self.inputevents = self.load_data('inputevents_mv')
-        self.meds['inputevents'] = self.load_data('inputevent_meds')
+        self.meds['inputevents'], self.med_counts['inputevents'] = self.load_data('inputevent_meds')
         
         if preprocessed:
             self.prescriptions = self.load_data('prescription_preprocessed')
@@ -79,7 +80,7 @@ class Dataset:
             else:
                 self.logger.info(f'Loaded {type}')
                 # subject_id,hadm_id
-                admissions = admissions[['SUBJECT_ID', 'HADM_ID']]
+                admissions = admissions[['SUBJECT_ID', 'HADM_ID', 'ADMITTIME', 'DISCHTIME']]
                 return admissions
         
         ### Labevents
@@ -208,13 +209,15 @@ class Dataset:
             try:
                 self.logger.info(f'Loading {type} data...')
                 meds = self.inputevents.groupby(['LABEL', 'SUBJECT_ID']).count().reset_index()['LABEL'].value_counts().reset_index()
+                med_counts = self.inputevents.groupby(["LABEL", "SUBJECT_ID"]).count().reset_index("SUBJECT_ID")[["SUBJECT_ID"]].groupby("LABEL").count().reset_index()
             except:
                 self.logger.error(f'Error {type}')
                 return None
             else:
                 self.logger.info(f'Loaded {type}')
                 meds.rename(columns = {'index':'MED', 'LABEL':'COUNT'}, inplace = True)
-                return meds
+                med_counts.rename(columns = {'LABEL':'MED', 'SUBJECT_ID':'COUNT'}, inplace = True)
+                return meds, med_counts
         
         ### Meds
         if type=='prescription_meds':

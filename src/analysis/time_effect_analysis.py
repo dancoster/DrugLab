@@ -77,6 +77,7 @@ class TimeEffect(Analysis):
             self.logger.info('Spearmans correlation: %.3f' % corr)
         
         if corr_type is None:
+            print('CHECK: ', values, time_diff)
             p_corr, _ = pearsonr(values, time_diff)
             s_corr, _ = spearmanr(values, time_diff)
             return p_corr, s_corr
@@ -91,7 +92,7 @@ class TimeEffect(Analysis):
         # 'Insulin - Regular'
         # 'Glucose'
         drug_lab, before1, after1 = Analysis.labpairing(presc, self.patient_presc, self.lab_measurements, lab, type=self.table, med1=self.data.med1, med2=self.data.med2, window=window)
-
+        
         if drug_lab is None and before1 is None and after1 is None:
             self.logger.info(f'{before_window} has no data for the given {presc}<>{lab} pair.')
             return None, None
@@ -151,6 +152,7 @@ class TimeEffect(Analysis):
                 
         if type=='absolute':
             absolute = after-estimate
+            print(f"{absolute}")
             return absolute, time_diff
         elif type=='percent':
             percent = 100*(after-estimate)/estimate
@@ -177,8 +179,10 @@ class TimeEffect(Analysis):
         lower = np.where(val <= (Q1-1.5*IQR))
 
         # Filtering
-        val.drop(upper[0], inplace = True)
-        time_diff.drop(upper[0], inplace = True)
-        val.drop(lower[0], inplace = True)
-        time_diff.drop(lower[0], inplace = True)
+        if len(upper) > 0:
+            val.drop(upper[0], inplace = True)
+            time_diff.drop(upper[0], inplace = True)
+        if len(lower) > 0:
+            val.drop(lower[0], inplace = True)
+            time_diff.drop(lower[0], inplace = True)
         return val, time_diff

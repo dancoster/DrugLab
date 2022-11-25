@@ -27,7 +27,8 @@ def config_args(args, BASE_DIR, DATA):
 
     config = dict()
 
-    config['data_path'] = get_arg_val('--data', args)
+    temp_path = get_arg_val('--data', args)
+    config['data_path'] = os.path.join(temp_path, 'mimiciii', '1.4')
     if config['data_path'] is None:
         config['data_path'] = os.path.join(DATA, 'mimiciii', '1.4')
 
@@ -100,7 +101,7 @@ def config_args(args, BASE_DIR, DATA):
         
         config['gender'] = get_arg_val('-g', args)
         if config['gender'] is None:
-            config['gender'] = 'M'
+            config['gender'] = 'both'
 
     return config
 
@@ -125,7 +126,7 @@ def get_arg_val(arg, args, k=1):
     return None
 
 def main(args, BASE_DIR):
-    print('Started process')
+    print('Started process...')
     DATA = BASE_DIR+'/data'
 
     logger = logging.getLogger(__name__)

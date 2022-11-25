@@ -24,7 +24,6 @@ class Stratify(Dataset):
         
         self.DATA_P = os.path.join(data_path, 'preprocessed')
         self.DATA = data_path
-        print(self.DATA)
         
         self.logger = logging.getLogger(self.__class__.__name__)
         
@@ -86,6 +85,8 @@ class Stratify(Dataset):
                 gender = gender[gender['GENDER']=='M']
             elif self.gender=='F':
                 gender = gender[gender['GENDER']=='F']
+            else:
+                gender = gender[(gender['GENDER']=='F') | (gender['GENDER']=='M')]
         
         if 'ethnicity' in self.types:
             ethnicity = ethnicity[ethnicity['ETHNICITY']==self.ethnicity]
@@ -118,8 +119,8 @@ class Stratify(Dataset):
 
             if self.between_meds:
                 self.logger.info(f'Between {self.between_meds} medications')
-                self.med2 = patient_presc.groupby(['HADM_ID', 'LABEL']).nth(self.between_meds[1]).reset_index()
-                self.med1 = patient_presc.groupby(['HADM_ID', 'LABEL']).nth(self.between_meds[0]).reset_index()
+                self.med2 = patient_presc.groupby(['HADM_ID', 'ITEMID']).nth(self.between_meds[1]).reset_index()
+                self.med1 = patient_presc.groupby(['HADM_ID', 'ITEMID']).nth(self.between_meds[0]).reset_index()
                 self.only_med1 = self.med1[~self.med1['HADM_ID'].isin(self.med2['HADM_ID'])]
                 self.med1 = self.med1[self.med1['HADM_ID'].isin(self.med2['HADM_ID'])]
 

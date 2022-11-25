@@ -1,0 +1,8 @@
+#!/bin/bash
+
+python src/main.py -v --visualize "Insulin - Regular" Glucose --table inputevents --window 1 48 --before-window 2 10 --after-window 1 10 --meds 200 --sub-pairs 1 --stratify -a 1 100 -e WHITE -b 1 100 -g both --data "/Volumes/GoogleDrive/My Drive/TAU/Code/DrugLab/data"
+python src/main.py -v --visualize "Packed Red Blood Cells" Hematocrait --table inputevents --window 1 48 --before-window 2 10 --after-window 1 10 --meds 200 --sub-pairs 1 --stratify -a 1 100 -e WHITE -b 1 100 -g both --data "/Volumes/GoogleDrive/My Drive/TAU/Code/DrugLab/data"
+python src/main.py -v --visualize "Packed Red Blood Cells" Hemoglobin --table inputevents --window 1 48 --before-window 2 10 --after-window 1 10 --meds 200 --sub-pairs 1 --stratify -a 1 100 -e WHITE -b 1 100 -g both --data "/Volumes/GoogleDrive/My Drive/TAU/Code/DrugLab/data"
+python src/main.py -v --visualize "Packed Red Blood Cells" Red Blood Cells --table inputevents --window 1 48 --before-window 2 10 --after-window 1 10 --meds 200 --sub-pairs 1 --stratify -a 1 100 -e WHITE -b 1 100 -g both --data "/Volumes/GoogleDrive/My Drive/TAU/Code/DrugLab/data"
+python src/main.py -v --visualize Calicium "Calicium Total" --table inputevents --window 1 48 --before-window 2 10 --after-window 1 10 --meds 200 --sub-pairs 1 --stratify -a 1 100 -e WHITE -b 1 100 -g both --data "/Volumes/GoogleDrive/My Drive/TAU/Code/DrugLab/data"
+python src/main.py -v --visualize "Albumin 5%" Hematocrait --table inputevents --window 1 48 --before-window 2 10 --after-window 1 10 --meds 200 --sub-pairs 1 --stratify -a 1 100 -e WHITE -b 1 100 -g both --data "/Volumes/GoogleDrive/My Drive/TAU/Code/DrugLab/data"

@@ -1,4 +1,3 @@
-from tkinter import W
 import pandas as pd
 import datetime
 import random
@@ -73,6 +72,7 @@ class TimeEffectVisualization(TimeEffect):
                 absolute, time_diff = self.get_data( presc, lab, 'absolute', method='estimate', before_window=before_window, window=window)
                 if absolute is None and time_diff is None:
                     raise Exception("No data")
+                    
             except:
                 self.logger.info(f'..')
             else:
