@@ -20,12 +20,16 @@ Repository for medication<>lab-test pair.
     ├── plots                   # Plots for data analysis and visualization (Older plots on drive - check [plots section](##Plots))
     ├── src                     # Source Code 
     │   ├── preprocessing               # Data Preprocessing
-    |   |   └── preprocess.py             # Data Loading and preprocessing class
+    |   |   ├── preprocess.py             # Data Loading and preprocessing class
+    |   |   └── stratify.py               # Stratification class
     │   ├── analysis                    # Data Analysis
+    |   |   ├── analysis.py               # Analysis Parent Class
     |   |   ├── inputevents_analysis.py   # Inputevents table - Before and After, regression and trend analysis
     |   |   ├── presc_analysis.py         # Prescriptions table - Before and After, regression and trend analysis
+    |   |   └── time_effect_analysis.py   # Time effct analysis
     │   ├── modeling                    # Data Modeling
     │   └── visualize                   # Visualization of data analysis
+    |       └── time_effect_visualize.py   # Time effct Visualization
     ├── results                 # Results 
     └── README.md
 
@@ -53,3 +57,23 @@ Drive Link to CSV Files : https://drive.google.com/drive/folders/1GVhYml7dnjQpYC
 
 ## Plots
 Drive Link to Medication<>Labtest Pair value plots : https://drive.google.com/drive/folders/1HV8gQ5LA3HhJc4ACL0DbOFec7bkweyk5?usp=sharing
+
+## Virtual Environment
+1. Installing Conda
+```
+mkdir -p ~/miniconda3
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+rm -rf ~/miniconda3/miniconda.sh
+~/miniconda3/bin/conda init bash
+~/miniconda3/bin/conda init zsh
+```
+2. Creating virtual environment
+```
+conda create --name drug_lab
+```
+3. Install Packages
+```
+
+```
+

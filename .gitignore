@@ -6,3 +6,11 @@ data/mimiciii/1.4
 venv/
 data/preprocessed/mimic_dataset.obj
 data/
+plots/
+plots/inputevents
+plots/prescriptions
+results/inputevents
+results/prescriptions
+results/*
+.DS_Store
+.idea/workspace.xml
