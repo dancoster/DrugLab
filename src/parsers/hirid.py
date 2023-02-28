@@ -5,8 +5,8 @@ from src.utils.utils import AnalysisUtils
 from src.utils.constants import HIRID_LAB_IDS
 
 class HiRiDParser(AnalysisUtils):
-    def __init__(self, data, res, gender="MF", age_b=0, age_a=100):
-        AnalysisUtils.__init__(self, data=data, res=res, gender=gender, age_b=age_b, age_a=age_a, load=False)
+    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, load=None):
+        AnalysisUtils.__init__(self, data=data, res=res, gender=gender, age_b=age_b, age_a=age_a, load=load)
         self.load_util_datasets()
 
     def load_util_datasets(self):
@@ -97,8 +97,7 @@ class HiRiDParser(AnalysisUtils):
         observation_tables_part_with_name = pd.merge(observation_tables_part, self.h_var_ref, on="variableid", how="inner")
         observation_tables_part_with_name = pd.merge(observation_tables_part_with_name, self.g_table, on="patientid", how="inner")
         observation_tables_part_with_name.datetime = pd.to_datetime(observation_tables_part_with_name.datetime)
-        observation_tables_part_with_name
-        observation_tables_part_with_name
+        
         observation_tables_part_with_name["Variable Name"].value_counts()
         observation_tables_part_with_name = observation_tables_part_with_name.rename(columns={
             "datetime":"CHARTTIME",
@@ -121,6 +120,7 @@ class HiRiDParser(AnalysisUtils):
         labs["ADMITTIME"] = pd.to_datetime(labs["ADMITTIME"])
         labs["LabTimeFromAdmit"] = labs["CHARTTIME"]-labs["ADMITTIME"]
         labs["hours_in"] = labs["LabTimeFromAdmit"].dt.total_seconds()/3600
+        
         return labs
 
     def parse(self, use_pairs=False):
@@ -133,6 +133,7 @@ class HiRiDParser(AnalysisUtils):
         labs = self.load_lab(hadm1, hadm2)
         
         t_med1, t_med2, t_labs = med1.copy(), med2.copy(), labs.copy()
+        
         if use_pairs:
             med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
             t_med1 = med1[med1["LABEL"].isin(med_vals_new)]

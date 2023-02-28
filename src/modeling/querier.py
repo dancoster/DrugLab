@@ -1,15 +1,18 @@
 import pandas as pd
 import os
 
-from src.utils.utils import AnalysisUtils
-from src.utils.utils import get_normalized_trend
+from src.utils.utils import AnalysisUtils, get_normalized_trend
+from src.utils import constants
 
 
 class DatasetQuerier(AnalysisUtils):
 
-    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, ethnicity="WHITE", lab_mapping=None):
+    def __init__(self, data, res, t_labs, t_med1, t_med2, gender="MF", age_b=0, age_a=100, ethnicity="WHITE", lab_mapping=None):
         self.final = None
         self.temp = None
+        self.t_labs = t_labs
+        self.t_med1 = t_med1
+        self.t_med2 = t_med2
         super().__init__(data, res, gender=gender, age_b=age_b, age_a=age_a, ethnicity=ethnicity, lab_mapping=lab_mapping)
     
     def check_med2(self, t_med2, row):
@@ -100,6 +103,8 @@ class DatasetQuerier(AnalysisUtils):
         Generate lab test values in before and after windows of medication
         """
         
+        t_labs, t_med1, t_med2 = self.t_labs, self.t_med1, self.t_med2
+        
         all_types = set(["abs", "time"])
         cols_b = [f"before_{t}_{b_w}" for b_w in before_windows for t in all_types]
         cols_a = [f"after_{t}_{a_w}" for a_w in after_windows for t in all_types]
@@ -131,8 +136,14 @@ class DatasetQuerier(AnalysisUtils):
 
         return final, temp
     
-    def query(self):
+    def query(self, med, lab, use_id=False):
         """
         Query lab test value for a given medication
         """
+        filter_col = constants.ID_COL if use_id else constants.NAME_ID_COL
+        med1_filtered = self.t_med1[self.t_med1[filter_col]==med]
+        med2_filtered = self.t_med2[self.t_med2[filter_col]==med]
+        labs_filtered = self.t_labs[self.t_labs[filter_col]==lab]
+        
+        
         pass

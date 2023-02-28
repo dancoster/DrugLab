@@ -1,3 +1,5 @@
+NAME_ID_COL = "ITEMID"
+ID_COL = "OldITEMID"
 
 # MIMIC Dataset constants
 LAB_MAPPING = {'ALT': {'Alanine aminotransferase': [50861, 769, 220644]},
@@ -116,6 +118,42 @@ LAB_VECT_COLS = ['ADMISSION_LOCATION',
         'VALUE',
         'VALUENUM',
         'VALUEUOM']
+
+MIMIC_MED_MAPPING = {'Furosemide': [221794, 228340, 3439],
+ 'Spironolactone': [6296, 5962],
+ 'Omeprazole': [7745, 7252, 227694],
+ 'Pantoprazole': [8074,
+  44820,
+  46522,
+  46014,
+  1097,
+  1226,
+  7372,
+  46548,
+  6741,
+  6616,
+  2778,
+  6756,
+  46565,
+  40550,
+  1898,
+  41583,
+  225910,
+  46203,
+  40700],
+ 'Acetylsalycilic acid (aspirin)': [7325, 7325],
+ 'Paracetamole (acetaminophen)': [50856],
+ 'Warfarin': [225913],
+ 'Haloperidol': [221824],
+ 'Ceftriaxone': [90018, 225855],
+ 'Procainamide ': [50962, 45853]}
+
+MIMIC_DICT_MED_MAPPING = {id:k for k, v in MIMIC_MED_MAPPING.items() for id in v}
+MIMIC_III_PREPROCESSED_PATH = "mimiciii/1.4/preprocessed"
+MIMIC_III_RAW_PATH = "mimiciii/1.4/raw"
+MIMIC_III_MED_PREPROCESSED_FILE_PATH = "mimiciii_med_preprocessed.csv"
+
+MIMIC_III_MED_LAB_PAIRS = [('Acetylsalycilic acid (aspirin)', 'Hemoglobin'), ('Acetylsalycilic acid (aspirin)', 'platelets'), ('Amoxicilin-clavulanate', 'ALT'), ('Amoxicilin-clavulanate', 'AST'), ('Ceftriaxone', 'bilirubin'), ('Citalopram', 'sodium'), ('Clozapine', 'platelets'), ('Dabigatran', 'Aptt'), ('Esmoprazole', 'B12'), ('Fluoxetine', 'sodium'), ('Furosemide', 'magnesium'), ('Glibenclamide', 'glucose'), ('Glimepiride', 'glucose'), ('Haloperidol', 'prolactin'), ('Hydrochlorothiazide', 'Uric acid'), ('Hydrochlorothiazide', 'calcium'), ('Metformin', 'B12'), ('Metformin', 'lactic acid'), ('Omeprazole', 'B12'), ('Pantoprazole', 'B12'), ('Paracetamole (acetaminophen)', 'ALT'), ('Paroxetine', 'sodium'), ('Procainamide', 'ANA'), ('Quetiapine', 'prolactin'), ('Ramipril', 'potassium'), ('Rivaroxaban', 'INR'), ('Simvastatin', 'CPK'), ('Spironolactone', 'potassium'), ('Trimetoprim-sulphamethoxazole', 'creatinine'), ('Trimetoprim-sulphamethoxazole', 'potassium'), ('Valproic acid', 'Amylase'), ('Valproic acid', 'Lipase'), ('Valsartan', 'potassium'), ('Warfarin', 'INR'), ('Insulin - Regular', 'glucose'), ('Packed Red Blood Cells', 'Hemoglobin'), ('Calcium Gluconate (CRRT)', 'calcium'), ('Packed Red Blood Cells', 'Red blood cell'), ('Packed Red Blood Cells', 'Hematocrit'), ('Albumin', 'Albumin'), ('Albumin', 'Hematocrit'), ('Albumin 5%', 'Albumin'), ('Albumin 5%', 'Hematocrit'), ('Albumin 25%', 'Albumin'), ('Albumin 25%', 'Hematocrit'), ('Magnesium Sulfate', 'Magnesium')]
 
 #  HIRID Dataset constants
 HIRID_MAPPING = {

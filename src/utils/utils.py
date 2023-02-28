@@ -5,6 +5,7 @@ import seaborn as sns
 import pandas as pd
 import os
 
+from src.utils import constants
 
 # Util Functions
 
@@ -149,7 +150,7 @@ def get_normalized_trend_np(data):
 # Utils class
 class AnalysisUtils:
 
-    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, ethnicity="WHITE", lab_mapping=None, load=False):
+    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, ethnicity="WHITE", load="MANUAL_MAPPING", lab_mapping=constants.LAB_MAPPING):
         '''
         Params
         data : path to dataset
@@ -158,78 +159,42 @@ class AnalysisUtils:
         age_b : stratification param for start of age group
         age_a : stratification param for end of age group
         ethnicity : stratification param for ethnicity
+        load: load mappings for lab test and medication data - "MANUAL_MAPPING" (labtest and medication names taken from constants.py), "AUTOMATIC_MAPPING" (based on number of subjects associated with the medication/labtest)
         lab_mapping : lab test mapping from mimic extract. Loaded externally and used in the class 
         '''
+        # Paths to raw, preprocessed dataset files and analysis result files
         self.data = data 
         self.res = res
+        
+        # Stratification parmas
         self.gender = gender
         self.age_b = age_b
         self.age_a = age_a
         self.ethnicity = ethnicity
         self.stratify_prefix = f"{age_b}-{age_a}_{gender}_{ethnicity}"
+        
+        # Mappings
+        self.load_mappings(type=load, lab_mapping=lab_mapping)    
 
-        self.res_dict_mapping_med = None
-        self.d_m_l_doc = None
-        if load:
-            self.load_mappings()
-        self.lab_mapping = lab_mapping
-
-    def load_mappings(self):
+    def load_mappings(self, type, lab_mapping=None):
         """
         Load Medication and Lab test name mappings from MIMIC Extract and Clinically Validated sources
         """
-        self.d_m_l_doc = pd.read_csv(os.path.join(self.data, "mimiciii", "1.4","preprocessed", "mapping_med_itemid_doc.csv")).drop(columns=["Unnamed: 0"])
-        dict_d_m_l = self.d_m_l_doc.to_dict("records")
-        self.res_dict_mapping_med = {
-            v:k["Medication"] for k in dict_d_m_l for v in [int(id) for id in k["ITEMID_with_manual"][1:-1].split(",") if id != '']
-        }
+        if type=="MANUAL_MAPPING":
+            self.med_mapping = {
+                id:k for k, v in constants.MIMIC_DICT_MED_MAPPING.items() for id in v
+            }
+            self.lab_mapping = lab_mapping if lab_mapping is not None else constants.LAB_MAPPING
+        elif type=="AUTOMATIC_MAPPING":
+            pass
+        else:
+            print("No mapping type chosen. Running on all labtests and medications")
+            return
 
     def generate_med_lab_pairs(self):
         """
         Generate medication and lab test pair names.
         """
-        
-        d_lab_map = {k:list(v.keys()) for k, v in self.lab_mapping.items()}
-        indexes = list(self.d_m_l_doc.groupby(["Medication", "lab result"]).count().index)
-
-        med_vals = [k[0].strip() for k in indexes]
-        labtest_vals = [k[1].strip() for k in indexes]
-        med_vals.append('Insulin - Regular')
-        labtest_vals.append('glucose')
-
-        med_vals.append('Packed Red Blood Cells')
-        labtest_vals.append('Hemoglobin')
-
-        med_vals.append('Calcium Gluconate (CRRT)')
-        labtest_vals.append('calcium')
-
-        med_vals.append('Packed Red Blood Cells')
-        labtest_vals.append('Red blood cell')
-
-        med_vals.append('Packed Red Blood Cells')
-        labtest_vals.append('Hematocrit')
-
-        med_vals.append('Albumin')
-        labtest_vals.append('Albumin')
-
-        med_vals.append('Albumin')
-        labtest_vals.append('Hematocrit')
-
-        med_vals.append('Albumin 5%')
-        labtest_vals.append('Albumin')
-
-        med_vals.append('Albumin 5%')
-        labtest_vals.append('Hematocrit')
-
-        med_vals.append('Albumin 25%')
-        labtest_vals.append('Albumin')
-
-        med_vals.append('Albumin 25%')
-        labtest_vals.append('Hematocrit')
-
-        med_vals.append('Magnesium Sulfate')
-        labtest_vals.append('Magnesium')
-        l_med_lab = [(i[0], k) for i in zip(med_vals, labtest_vals) for k in d_lab_map[i[1]]]
-        labtest_vals_new = [k[1] for k in l_med_lab]
-        med_vals_new = [k[0] for k in l_med_lab]
-        return med_vals_new, labtest_vals_new
+        med_vals = [k[0] for k in constants.MIMIC_III_MED_LAB_PAIRS]
+        labtest_vals = [k[1] for k in constants.MIMIC_III_MED_LAB_PAIRS]
+        return med_vals, labtest_vals
