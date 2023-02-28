@@ -1,6 +1,8 @@
 import pandas as pd
+import os
 
 from src.utils.utils import AnalysisUtils
+from src.utils.utils import get_normalized_trend
 
 
 class DatasetQuerier(AnalysisUtils):
@@ -107,7 +109,7 @@ class DatasetQuerier(AnalysisUtils):
 
         temp = temp.apply(lambda r : self.get_vals(r, t_labs, t_med1, t_med2, before_windows, after_windows), axis=1)
         self.temp = temp
-        temp.to_csv(self.res, f"before_after_windows_main_med_lab_first_val_{self.stratify_prefix}_doc_eval_new_win.csv")
+        temp.to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_first_val_{self.stratify_prefix}_doc_eval_new_win.csv"))
         
         col_vals = []
         for col in cols:
@@ -125,7 +127,7 @@ class DatasetQuerier(AnalysisUtils):
         final = final.rename(columns={"ITEMID":"MED_NAME"})
         self.final = final
         
-        final.to_csv(self.res, f"before_after_windows_main_med_lab_trends_first_val_{self.stratify_prefix}_doc_eval_win.csv")
+        final.to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_trends_first_val_{self.stratify_prefix}_doc_eval_win.csv"))
 
         return final, temp
     

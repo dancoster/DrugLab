@@ -172,7 +172,7 @@ class AnalysisUtils:
         self.d_m_l_doc = None
         if load:
             self.load_mappings()
-        self.lab_mapping = LAB_MAPPING
+        self.lab_mapping = lab_mapping
 
     def load_mappings(self):
         """

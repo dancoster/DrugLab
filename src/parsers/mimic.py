@@ -7,9 +7,9 @@ from src.utils.constants import LAB_MAPPING, LAB_VECT_COLS
 
 
 class MIMICParser(AnalysisUtils):
-    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, ethnicity="WHITE", lab_mapping=None):
+    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, ethnicity="WHITE", lab_mapping=None, load=True):
         self.m_p_df = None
-        AnalysisUtils.__init__(self, data, res, gender=gender, age_b=age_b, age_a=age_a, ethnicity=ethnicity, lab_mapping=LAB_MAPPING)
+        AnalysisUtils.__init__(self, data, res, gender=gender, age_b=age_b, age_a=age_a, ethnicity=ethnicity, lab_mapping=LAB_MAPPING, load=load)
         
     def generate_med_data(self):
         admits = pd.read_csv(os.path.join(self.data, "mimiciii/1.4/raw", "ADMISSIONS.csv.gz"))
@@ -72,7 +72,8 @@ class MIMICParser(AnalysisUtils):
         med1 = pd.read_csv(os.path.join(self.data, "mimiciii/1.4/preprocessed", "med1_vectorized.csv")) if use_med_vect and os.path.exists(os.path.join(self.data, "mimiciii/1.4/preprocessed", "med1_vectorized.csv")) else self.generate_med1_vect()
         h_adm_1 = med1.sort_values(["HADM_ID", "STARTTIME"]).groupby("SUBJECT_ID").nth(0)["HADM_ID"].to_list()
         med1 = med1[med1.HADM_ID.isin(h_adm_1)]
-        med1 = med1.drop(columns=["Unnamed: 0"])
+        if ("Unnamed: 0" in med1.columns):
+            med1 = med1.drop(columns=["Unnamed: 0"])
         med1 = med1[med1["AGE"]>=self.age_b]
         med1 = med1[med1["AGE"]<=self.age_a]
         med1 = med1[med1["GENDER"]==self.gender] if self.gender != "MF" else med1
