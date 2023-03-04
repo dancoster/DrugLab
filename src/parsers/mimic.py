@@ -28,15 +28,19 @@ class MIMICParser(AnalysisUtils):
         Returns:
             pd.DataFrame: Preprocessed medication data with medicaiton name, time after admission and other info.
         """
+        print("Generate med data....")
         # Filtering 1st admission data for each subject/patient
         admits = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "ADMISSIONS.csv.gz")).sort_values(["SUBJECT_ID", "ADMITTIME"]).groupby(["SUBJECT_ID"]).nth(0).reset_index()
         inputevents_mv = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "INPUTEVENTS_MV.csv.gz"))
+        patients = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "PATIENTS.csv.gz"))
                 
         ### Merge medication and admission data
         inputevents_mv = pd.merge(inputevents_mv, admits, how="inner", on=["HADM_ID", "SUBJECT_ID"])
+        inputevents_mv = pd.merge(inputevents_mv, patients, how="inner", on=["SUBJECT_ID"])
         inputevents_mv = change_col_to_datetime(inputevents_mv, 'ADMITTIME')
         inputevents_mv = change_col_to_datetime(inputevents_mv, 'ENDTIME')
         inputevents_mv = change_col_to_datetime(inputevents_mv, 'STARTTIME')
+        inputevents_mv = change_col_to_datetime(inputevents_mv, 'DOB')
         inputevents_mv['MedTimeFromAdmit'] = inputevents_mv['ENDTIME']-inputevents_mv['ADMITTIME']
 
         ### Add medication information from D_ITEMS table in MIMIC III dataset (like label name)
@@ -47,8 +51,10 @@ class MIMICParser(AnalysisUtils):
         m_p_df = pd.merge(inputevents_mv, med_data, how="inner", on="ITEMID")
         m_p_df = m_p_df.sort_values(by="MedTimeFromAdmit") 
         
-        m_p_df.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_MED_PREPROCESSED_FILE_PATH))
+        m_p_df['AGE'] = m_p_df.apply(lambda r: round((r['ADMITTIME'].to_pydatetime()-r['DOB'].to_pydatetime()).days/365, 0), axis=1)
         
+        m_p_df.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_MED_PREPROCESSED_FILE_PATH))
+        print("Generated med data.")
         return m_p_df
     
     def stratify_med_data(self, m_p_df):
@@ -76,11 +82,12 @@ class MIMICParser(AnalysisUtils):
             med_preprocessed (_type_): Preprocessed medication data with medication names and medication administration times
             k (int, optional): kth Medication administered to patients. Defaults to 1.
         """
-        med_k = med_preprocessed.groupby(["HADM_ID", "ITEMID"]).nth(k-1).reset_index()        
-        # Making sure we only take 1st admission data of the patient. This also makes sure data related to one admission is only taken
-        med_k = med_k.sort_values(by=["ADMITTIME"]).groupby(["SUBJECT_ID", "ITEMID"]).nth(0).reset_index().sort_values(by=["MedTimeFromAdmit"])
-        # save
-        med_k.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
+        # med_k = med_preprocessed.groupby(["HADM_ID", "ITEMID"]).nth(k-1).reset_index()        
+        # # Making sure we only take 1st admission data of the patient. This also makes sure data related to one admission is only taken
+        # med_k = med_k.sort_values(by=["ADMITTIME"]).groupby(["SUBJECT_ID", "ITEMID"]).nth(0).reset_index().sort_values(by=["MedTimeFromAdmit"])
+        # # save
+        # med_k.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
+        med_k = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
         return med_k
     
     def load_med_k_vect(self, med_preprocessed, k=1, load_from_raw=False):
@@ -117,55 +124,59 @@ class MIMICParser(AnalysisUtils):
         Generate vectorized version of Lab data
         """
         
+        print("Generate lab data from labevents...")
         # Read admits information from mimic3 dataset
         admits = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "ADMISSIONS.csv.gz"))
         patients = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "PATIENTS.csv.gz"))
 
-        ### Final Mapping (from the above "lab_itemids" dictionary, ie, output of manual mapping from mimic extract) in the required format
-        final_mapping_lab_itemids = {v2:k1 for k, v in self.lab_mapping.items() for k1, v1 in v.items() for v2 in v1}
-        final_itemids_list = list(final_mapping_lab_itemids.keys())
+        # ### Final Mapping (from the above "lab_itemids" dictionary, ie, output of manual mapping from mimic extract) in the required format
+        # final_mapping_lab_itemids = {v2:k for k, v in self.lab_mapping.items() for v2 in v}
+        # final_itemids_list = list(final_mapping_lab_itemids.keys())
 
-        ## Labevents
-        labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "INPUTEVENTS_MV.csv.gz"))
+        # ## Labevents
+        # labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "LABEVENTS.csv.gz"))
 
-        ### Preprocessing labevents data to add requried features like "MIMIC Extract Names" and "age at admit time"
-        labevents = labevents[labevents.ITEMID.isin(final_itemids_list)]
-        labevents["MIMICExtractName"] = labevents.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
-        labevents["TABLE"] = labevents.apply(lambda r: "LABEVENTS", axis=1)
-        labevents = labevents.rename(columns={"SUBJECT_ID_x":"SUBJECT_ID"})
+        # ### Preprocessing labevents data to add requried features like "MIMIC Extract Names" and "age at admit time"
+        # labevents = labevents[labevents.ITEMID.isin(final_itemids_list)]
+        # labevents["MIMICExtractName"] = labevents.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
+        # labevents["TABLE"] = labevents.apply(lambda r: "LABEVENTS", axis=1)
+        # labevents = labevents.rename(columns={"SUBJECT_ID_x":"SUBJECT_ID"})
 
-        #### Age at admit time
-        labevents = pd.merge(labevents, patients, how="inner", on="SUBJECT_ID")
-        labevents["DOB"] = pd.to_datetime(labevents["DOB"])
-        labevents["ADMITTIME"] = pd.to_datetime(labevents["ADMITTIME"])
-        labevents['AGE'] = labevents.apply(lambda r: round((r['ADMITTIME'].to_pydatetime()-r['DOB'].to_pydatetime()).days/365, 0), axis=1)
+        # #### Age at admit time
+        # labevents = pd.merge(labevents, admits, how="inner", on=["HADM_ID", "SUBJECT_ID"])
+        # labevents = pd.merge(labevents, patients, how="inner", on="SUBJECT_ID")
+        # labevents["DOB"] = pd.to_datetime(labevents["DOB"])
+        # labevents["ADMITTIME"] = pd.to_datetime(labevents["ADMITTIME"])
+        # labevents['AGE'] = labevents.apply(lambda r: round((r['ADMITTIME'].to_pydatetime()-r['DOB'].to_pydatetime()).days/365, 0), axis=1)
 
-        columns = constants.LAB_VECT_COLS
-        columns.extend(['ROW_ID_x', 'TABLE'])
-        labevents[columns].to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, "lab_patient_data_with_mimic_extract_names.csv"))
-        # labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, "lab_patient_data_with_mimic_extract_names.csv"))
-
+        # columns = constants.LAB_VECT_COLS
+        # columns.extend(['ROW_ID_x', 'TABLE'])
+        # labevents[columns].to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
+        labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
+        print("Generated lab data from labevents.")
+        
+        print("Generate lab data from chartevents...")
         ## Chartevents
         ### Reading chartevents data in chunks and saving the output CSV files for each chunck (batch processing). 
         ### The output of each chunk (csv file) is later concatenated and stored.
-        res_paths = []
-        count = 0
-        with pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "CHARTEVENTS.csv.gz"), chunksize=5_000_000) as reader:
-            for chunk in reader:
-                print(count, chunk.shape)
-                path = os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz")
-                chunk = chunk[chunk.ITEMID.isin(final_itemids_list)]
-                t = chunk.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
-                if t.shape[0]>0:
-                    chunk["MIMICExtractName"] = t
-                    chunk.to_csv(path)
-                    print(count, chunk.shape)
-                    res_paths.append(path)
-                else:
-                    print(count, 0)    
-                count += 1
+        # res_paths = []
+        # count = 0
+        # with pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "CHARTEVENTS.csv.gz"), chunksize=5_000_000) as reader:
+        #     for chunk in reader:
+        #         print(count, chunk.shape)
+        #         path = os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz")
+        #         chunk = chunk[chunk.ITEMID.isin(final_itemids_list)]
+        #         t = chunk.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
+        #         if t.shape[0]>0:
+        #             chunk["MIMICExtractName"] = t
+        #             chunk.to_csv(path)
+        #             print(count, chunk.shape)
+        #             res_paths.append(path)
+        #         else:
+        #             print(count, 0)    
+        #         count += 1
 
-        chartevents = pd.concat([pd.read_csv(f) for f in res_paths], ignore_index=True) ## concatenation of output from each chunk
+        chartevents = pd.concat([pd.read_csv(os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz")) for count in range(67)], ignore_index=True) ## concatenation of output from each chunk
 
         ### Preprocessing of chartevents table and adding requried fields like "age at admit time"
         chartevents["TABLE"] = chartevents.apply(lambda r: "CHARTEVENTS", axis=1)
@@ -177,11 +188,12 @@ class MIMICParser(AnalysisUtils):
         chartevents["DOB"] = pd.to_datetime(chartevents["DOB"])
         chartevents["ADMITTIME"] = pd.to_datetime(chartevents["ADMITTIME"])
         chartevents['AGE'] = chartevents.apply(lambda r: round((r['ADMITTIME'].to_pydatetime()-r['DOB'].to_pydatetime()).days/365, 0), axis=1)
+        print("Generated lab data from chartevents.")
         
         # Select cols in chartevents
         columns = constants.LAB_VECT_COLS
         columns.extend(['ROW_ID_x', 'SUBJECT_ID_y', 'TABLE'])
-        chartevents[columns].to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATHI, "chartevents_with_mimic_extract_lab.csv.gz"))
+        chartevents[columns].to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, "chartevents_with_mimic_extract_lab.csv.gz"))
 
         ## Merge output from chartevents and labevents
         ### select required columns from CHARTEVENTS (result -> t_r) and LABEVETS (labevents -> t_l)
