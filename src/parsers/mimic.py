@@ -129,12 +129,12 @@ class MIMICParser(AnalysisUtils):
         admits = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "ADMISSIONS.csv.gz"))
         patients = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "PATIENTS.csv.gz"))
 
-        # ### Final Mapping (from the above "lab_itemids" dictionary, ie, output of manual mapping from mimic extract) in the required format
-        # final_mapping_lab_itemids = {v2:k for k, v in self.lab_mapping.items() for v2 in v}
-        # final_itemids_list = list(final_mapping_lab_itemids.keys())
+        ### Final Mapping (from the above "lab_itemids" dictionary, ie, output of manual mapping from mimic extract) in the required format
+        final_mapping_lab_itemids = {v2:k for k, v in self.lab_mapping.items() for v2 in v}
+        final_itemids_list = list(final_mapping_lab_itemids.keys())
 
-        # ## Labevents
-        # labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "LABEVENTS.csv.gz"))
+        ## Labevents
+        labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "LABEVENTS.csv.gz"))
 
         # ### Preprocessing labevents data to add requried features like "MIMIC Extract Names" and "age at admit time"
         # labevents = labevents[labevents.ITEMID.isin(final_itemids_list)]
@@ -142,17 +142,16 @@ class MIMICParser(AnalysisUtils):
         # labevents["TABLE"] = labevents.apply(lambda r: "LABEVENTS", axis=1)
         # labevents = labevents.rename(columns={"SUBJECT_ID_x":"SUBJECT_ID"})
 
-        # #### Age at admit time
-        # labevents = pd.merge(labevents, admits, how="inner", on=["HADM_ID", "SUBJECT_ID"])
-        # labevents = pd.merge(labevents, patients, how="inner", on="SUBJECT_ID")
-        # labevents["DOB"] = pd.to_datetime(labevents["DOB"])
-        # labevents["ADMITTIME"] = pd.to_datetime(labevents["ADMITTIME"])
-        # labevents['AGE'] = labevents.apply(lambda r: round((r['ADMITTIME'].to_pydatetime()-r['DOB'].to_pydatetime()).days/365, 0), axis=1)
+        #### Age at admit time
+        labevents = pd.merge(labevents, admits, how="inner", on=["HADM_ID", "SUBJECT_ID"])
+        labevents = pd.merge(labevents, patients, how="inner", on="SUBJECT_ID")
+        labevents["DOB"] = pd.to_datetime(labevents["DOB"])
+        labevents["ADMITTIME"] = pd.to_datetime(labevents["ADMITTIME"])
+        labevents['AGE'] = labevents.apply(lambda r: round((r['ADMITTIME'].to_pydatetime()-r['DOB'].to_pydatetime()).days/365, 0), axis=1)
 
-        # columns = constants.LAB_VECT_COLS
-        # columns.extend(['ROW_ID_x', 'TABLE'])
-        # labevents[columns].to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
-        labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
+        columns = constants.LAB_VECT_COLS
+        columns.extend(['ROW_ID_x', 'TABLE'])
+        labevents[columns].to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
         print("Generated lab data from labevents.")
         
         print("Generate lab data from chartevents...")
