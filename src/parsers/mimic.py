@@ -241,7 +241,7 @@ class MIMICParser(AnalysisUtils):
         
         return labs
 
-    def parse(self, use_pairs=True, load_from_raw=True):
+    def parse(self, use_pairs=True, load_from_raw=True, load_raw_chartevents=False):
         """Loading medication and lab test. Performing basic preprocessing on data.
         
         Args:
@@ -259,7 +259,7 @@ class MIMICParser(AnalysisUtils):
         
         med1, hadm1 = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=1, load_from_raw=load_from_raw)
         med2, _ = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=2, load_from_raw=load_from_raw)
-        labs = self.load_lab(hadm1, load_from_raw=load_from_raw)
+        labs = self.load_lab(hadm1, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents)
         
         t_med1, t_med2, t_labs = med1.copy(), med2.copy(), labs.copy()
         if use_pairs:
