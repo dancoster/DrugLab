@@ -213,7 +213,7 @@ class MIMICParser(AnalysisUtils):
 
         return merged_chart_lab_events
 
-    def load_lab(self, h_med_adm1, load_from_raw=True):
+    def load_lab(self, h_med_adm1, load_from_raw=True, load_raw_chartevents=False):
         """
         Load lab test data from LABEVENTS and CHARTEVENTS tables
         """
@@ -221,7 +221,8 @@ class MIMICParser(AnalysisUtils):
         if not load_from_raw and os.path.exists(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, "lab_patient_data_mimic_extract_2.csv")):
             labs = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, "lab_patient_data_mimic_extract_2.csv")) 
         else:
-            labs = self.generate_lab_vect()
+            bool_val = not load_raw_chartevents
+            labs = self.generate_lab_vect(use_partitioned_files=bool_val)
 
         labs = labs.drop(columns=["Unnamed: 0"])
         labs = labs[labs.HADM_ID.isin(h_med_adm1)]
