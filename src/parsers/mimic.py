@@ -119,7 +119,7 @@ class MIMICParser(AnalysisUtils):
         
         return med_k, h_adm_k
     
-    def generate_lab_vect(self):
+    def generate_lab_vect(self, use_partitioned_files=False):
         """
         Generate vectorized version of Lab data
         """
@@ -137,10 +137,10 @@ class MIMICParser(AnalysisUtils):
         labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "LABEVENTS.csv.gz"))
 
         # ### Preprocessing labevents data to add requried features like "MIMIC Extract Names" and "age at admit time"
-        # labevents = labevents[labevents.ITEMID.isin(final_itemids_list)]
-        # labevents["MIMICExtractName"] = labevents.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
-        # labevents["TABLE"] = labevents.apply(lambda r: "LABEVENTS", axis=1)
-        # labevents = labevents.rename(columns={"SUBJECT_ID_x":"SUBJECT_ID"})
+        labevents = labevents[labevents.ITEMID.isin(final_itemids_list)]
+        labevents["MIMICExtractName"] = labevents.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
+        labevents["TABLE"] = labevents.apply(lambda r: "LABEVENTS", axis=1)
+        labevents = labevents.rename(columns={"SUBJECT_ID_x":"SUBJECT_ID"})
 
         #### Age at admit time
         labevents = pd.merge(labevents, admits, how="inner", on=["HADM_ID", "SUBJECT_ID"])
@@ -158,24 +158,27 @@ class MIMICParser(AnalysisUtils):
         ## Chartevents
         ### Reading chartevents data in chunks and saving the output CSV files for each chunck (batch processing). 
         ### The output of each chunk (csv file) is later concatenated and stored.
-        # res_paths = []
-        # count = 0
-        # with pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "CHARTEVENTS.csv.gz"), chunksize=5_000_000) as reader:
-        #     for chunk in reader:
-        #         print(count, chunk.shape)
-        #         path = os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz")
-        #         chunk = chunk[chunk.ITEMID.isin(final_itemids_list)]
-        #         t = chunk.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
-        #         if t.shape[0]>0:
-        #             chunk["MIMICExtractName"] = t
-        #             chunk.to_csv(path)
-        #             print(count, chunk.shape)
-        #             res_paths.append(path)
-        #         else:
-        #             print(count, 0)    
-        #         count += 1
-
-        chartevents = pd.concat([pd.read_csv(os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz")) for count in range(67)], ignore_index=True) ## concatenation of output from each chunk
+        if use_partitioned_files:
+            res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(67)]
+        else:
+            res_paths = []
+            count = 0
+            with pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "CHARTEVENTS.csv.gz"), chunksize=5_000_000) as reader:
+                for chunk in reader:
+                    print(count, chunk.shape)
+                    path = os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz")
+                    chunk = chunk[chunk.ITEMID.isin(final_itemids_list)]
+                    t = chunk.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
+                    if t.shape[0]>0:
+                        chunk["MIMICExtractName"] = t
+                        chunk.to_csv(path)
+                        print(count, chunk.shape)
+                        res_paths.append(path)
+                    else:
+                        print(count, 0)    
+                    count += 1
+        
+        chartevents = pd.concat([pd.read_csv(path) for path in res_paths], ignore_index=True) ## concatenation of output from each chunk
 
         ### Preprocessing of chartevents table and adding requried fields like "age at admit time"
         chartevents["TABLE"] = chartevents.apply(lambda r: "CHARTEVENTS", axis=1)
