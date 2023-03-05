@@ -5,8 +5,8 @@ from src.utils.utils import AnalysisUtils
 from src.utils.constants import HIRID_LAB_IDS
 
 class HiRiDParser(AnalysisUtils):
-    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, load=None):
-        AnalysisUtils.__init__(self, data=data, res=res, gender=gender, age_b=age_b, age_a=age_a, load=load)
+    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, load="MANUAL_MAPPING_HIRID"):
+        AnalysisUtils.__init__(self, data=data, res=res, gender=gender, age_b=age_b, age_a=age_a, load=load, )
         self.load_util_datasets()
 
     def load_util_datasets(self):
@@ -84,7 +84,7 @@ class HiRiDParser(AnalysisUtils):
     def read_lab(self, path, adm):
         labs = pd.read_csv(path)
         labs = labs[labs.patientid.isin(adm)]
-        labs = labs[labs.variableid.isin(HIRID_LAB_IDS)]
+        labs = labs[labs.variableid.isin(self.lab_mapping)]
         return labs
 
     def load_lab(self, h_med_adm1, h_med_adm2, n_parts=50):

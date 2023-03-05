@@ -150,7 +150,7 @@ def get_normalized_trend_np(data):
 # Utils class
 class AnalysisUtils:
 
-    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, ethnicity="WHITE", load="MANUAL_MAPPING", lab_mapping=constants.LAB_MAPPING):
+    def __init__(self, data, res, gender="MF", age_b=0, age_a=100, ethnicity="WHITE", load="MANUAL_MAPPING_MIMIC", lab_mapping=constants.LAB_MAPPING, top_k_meds=30):
         '''
         Params
         data : path to dataset
@@ -161,6 +161,7 @@ class AnalysisUtils:
         ethnicity : stratification param for ethnicity
         load: load mappings for lab test and medication data - "MANUAL_MAPPING" (labtest and medication names taken from constants.py), "AUTOMATIC_MAPPING" (based on number of subjects associated with the medication/labtest)
         lab_mapping : lab test mapping from mimic extract. Loaded externally and used in the class 
+        top_k_meds : top k meds based on number of subjects is chosen
         '''
         # Paths to raw, preprocessed dataset files and analysis result files
         self.data = data 
@@ -174,19 +175,29 @@ class AnalysisUtils:
         self.stratify_prefix = f"{age_b}-{age_a}_{gender}_{ethnicity}"
         
         # Mappings
-        self.load_mappings(type=load, lab_mapping=lab_mapping)    
+        self.load_mappings(type=load, lab_mapping=lab_mapping, num_meds=top_k_meds)    
 
-    def load_mappings(self, type, lab_mapping=None):
+    def load_mappings(self, type, lab_mapping=None, num_meds=30):
         """
         Load Medication and Lab test name mappings from MIMIC Extract and Clinically Validated sources
         """
-        if type=="MANUAL_MAPPING":
-            self.med_mapping = {
-                id:k for k, v in constants.MIMIC_DICT_MED_MAPPING.items() for id in v
-            }
+        if type=="MANUAL_MAPPING_MIMIC":
+            self.med_mapping = constants.MIMIC_DICT_MED_MAPPING
             self.lab_mapping = lab_mapping if lab_mapping is not None else constants.LAB_MAPPING
-        elif type=="AUTOMATIC_MAPPING":
-            pass
+        elif type=="AUTOMATIC_MAPPING_MIMIC":
+            # read data
+            inputevents_mv = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "INPUTEVENTS_MV.csv.gz"))
+            med_data = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "D_ITEMS.csv.gz"))
+            inputevents_mv = pd.merge(inputevents_mv, med_data, how="inner", on="ITEMID")
+            # get top k and generate data
+            self.med_mapping = {k[0]:k[1] for k in inputevents_mv.groupby(["ITEMID", "LABEL", "HADM_ID"]).count().reset_index()[["ITEMID", "LABEL", "HADM_ID"]].groupby(["ITEMID", "LABEL"]).count().sort_values("HADM_ID", ascending=False).head(num_meds).to_dict()["HADM_ID"].keys()}
+            self.lab_mapping = lab_mapping if lab_mapping is not None else constants.LAB_MAPPING
+        elif type=="MANUAL_MAPPING_HIRID":
+            self.med_mapping = None
+            self.lab_mapping = lab_mapping if lab_mapping is not None else constants.HIRID_LAB_IDS
+        elif type=="AUTOMATIC_MAPPING_HIRID":
+            self.med_mapping = None
+            self.lab_mapping = lab_mapping if lab_mapping is not None else constants.HIRID_LAB_IDS
         else:
             print("No mapping type chosen. Running on all labtests and medications")
             return

@@ -98,7 +98,7 @@ class DatasetQuerier(AnalysisUtils):
                 
         return row
     
-    def generate_med_lab_data(self, t_labs, t_med1, t_med2, before_windows, after_windows):
+    def generate_med_lab_data(self, before_windows, after_windows):
         """
         Generate lab test values in before and after windows of medication
         """
@@ -162,8 +162,9 @@ class DatasetQuerier(AnalysisUtils):
             print(f"No data found for the given lab test {lab}")
             return
         
+        temp = med1_filtered.copy()
         temp = temp.apply(lambda r : self.get_vals(r, labs_filtered, med1_filtered, med2_filtered, before_windows, after_windows), axis=1)
-        temp.to_csv(os.path.join(self.res, f"before_after_windows_med_lab_first_val_{self.stratify_prefix}_{med}_{lab}_doc_eval_new_win.csv"))
+        # temp.to_csv(os.path.join(self.res, f"before_after_windows_med_lab_first_val_{self.stratify_prefix}_{med}_{lab}_doc_eval_new_win.csv"))
         
         all_types = set(["abs", "time"])
         cols_b = [f"before_{t}_{b_w}" for b_w in before_windows for t in all_types]

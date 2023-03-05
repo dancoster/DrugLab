@@ -6,10 +6,10 @@ LAB_MAPPING = {
     'Alanine aminotransferase': [50861, 769, 220644],
     'Fraction inspired oxygen': [189],
     'Asparate aminotransferase': [50878, 770, 220587],
-    'Hemoglobin percent': [50852],
-    'Hemoglobin C': [51224],
-    'Hemoglobin F': [51225],
-    'Hemoglobin A2': [51223],
+    # 'Hemoglobin percent': [50852],
+    # 'Hemoglobin C': [51224],
+    # 'Hemoglobin F': [51225],
+    # 'Hemoglobin A2': [51223],
     'Hemoglobin': [814, 220228, 51222, 50811],
     'Prothrombin time INR': [51237, 815, 1530, 227467],
     'Bilirubin': [51465, 50883, 803, 225651, 50885, 1538, 848, 225690, 50884],
@@ -34,7 +34,9 @@ LAB_MAPPING = {
     'PTT': [825, 1533, 227466, 51275],
     'Hematocrit': [813, 220545, 51221, 50810],
     'Red blood cell': [51279, 833],
-    'Albumin': [50862, 772, 1521, 227456]
+    'Albumin': [50862, 772, 1521, 227456],
+    # Vital signs
+    
 }
 
 OLD_LAB_MAPPING = {
@@ -195,7 +197,7 @@ MIMIC_III_MED_PREPROCESSED_FILE_PATH = "mimiciii_med_preprocessed.csv"
 MIMIC_III_MED_LAB_PAIRS = [('Acetylsalycilic acid (aspirin)', 'Hemoglobin'), ('Acetylsalycilic acid (aspirin)', 'platelets'), ('Amoxicilin-clavulanate', 'ALT'), ('Amoxicilin-clavulanate', 'AST'), ('Ceftriaxone', 'bilirubin'), ('Citalopram', 'sodium'), ('Clozapine', 'platelets'), ('Dabigatran', 'Aptt'), ('Esmoprazole', 'B12'), ('Fluoxetine', 'sodium'), ('Furosemide', 'magnesium'), ('Glibenclamide', 'glucose'), ('Glimepiride', 'glucose'), ('Haloperidol', 'prolactin'), ('Hydrochlorothiazide', 'Uric acid'), ('Hydrochlorothiazide', 'calcium'), ('Metformin', 'B12'), ('Metformin', 'lactic acid'), ('Omeprazole', 'B12'), ('Pantoprazole', 'B12'), ('Paracetamole (acetaminophen)', 'ALT'), ('Paroxetine', 'sodium'), ('Procainamide', 'ANA'), ('Quetiapine', 'prolactin'), ('Ramipril', 'potassium'), ('Rivaroxaban', 'INR'), ('Simvastatin', 'CPK'), ('Spironolactone', 'potassium'), ('Trimetoprim-sulphamethoxazole', 'creatinine'), ('Trimetoprim-sulphamethoxazole', 'potassium'), ('Valproic acid', 'Amylase'), ('Valproic acid', 'Lipase'), ('Valsartan', 'potassium'), ('Warfarin', 'INR'), ('Insulin - Regular', 'glucose'), ('Packed Red Blood Cells', 'Hemoglobin'), ('Calcium Gluconate (CRRT)', 'calcium'), ('Packed Red Blood Cells', 'Red blood cell'), ('Packed Red Blood Cells', 'Hematocrit'), ('Albumin', 'Albumin'), ('Albumin', 'Hematocrit'), ('Albumin 5%', 'Albumin'), ('Albumin 5%', 'Hematocrit'), ('Albumin 25%', 'Albumin'), ('Albumin 25%', 'Hematocrit'), ('Magnesium Sulfate', 'Magnesium')]
 
 MIMIC_III_LABEVENT_PREPROCESSED = "lab_patient_data_with_mimic_extract_names_1.csv"
-
+MIMIC_III_PREPROCESSED_LABDATA = "lab_patient_data_mimic_extract_2.csv"
 #  HIRID Dataset constants
 HIRID_MAPPING = {
     "Hemoglobin": [24000526, 24000548, 24000549, 20000900, 24000836],
