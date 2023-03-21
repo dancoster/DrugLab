@@ -166,7 +166,7 @@ class DatasetQuerier(AnalysisUtils):
         temp = temp.apply(lambda r : self.get_vals(r, labs_filtered, med1_filtered, med2_filtered, before_windows, after_windows), axis=1)
         # temp.to_csv(os.path.join(self.res, f"before_after_windows_med_lab_first_val_{self.stratify_prefix}_{med}_{lab}_doc_eval_new_win.csv"))
         
-        all_types = set(["abs", "time"])
+        all_types = set(["abs", "mean", "trends", "time"])
         cols_b = [f"before_{t}_{b_w}" for b_w in before_windows for t in all_types]
         cols_a = [f"after_{t}_{a_w}" for a_w in after_windows for t in all_types]
         cols = cols_b.copy()

@@ -1,6 +1,10 @@
 from src.parsers import mimic, hirid
 from src.modeling import discovery, plots, querier
 from src.utils import constants
+import sys
+# import win32com.client
+import os
+import pandas as pd
 
 def setup_io_config(root_path):
     """
@@ -9,96 +13,105 @@ def setup_io_config(root_path):
     """
 
     # MIMIC
-    data = f"{root_path}/data"
-    res = f"{root_path}/results"
+    is_shortcut = True if "data.lnk" in os.listdir(root_path) else False 
+    
+    if (is_shortcut):
+        path_shortcut =  os.path.join(root_path, "data.lnk")
+        shell = win32com.client.Dispatch("WScript.Shell")
+        mimic_data = shell.CreateShortCut(path_shortcut).Targetpath
+    else:
+        mimic_data = os.path.join(f"{root_path}", "data") 
+    mimic_path = os.path.join(f"{root_path}", "results")
 
     # HIRID
-    raw_path = f'{root_path}/data/hirid-a-high-time-resolution-icu-dataset-1.1.1/raw_stage/'
-    res_path = f'{root_path}/data/hirid-a-high-time-resolution-icu-dataset-1.1.1'
+    hirid_data = f'{root_path}/data/hirid-a-high-time-resolution-icu-dataset-1.1.1/raw_stage/'
+    hirid_path = f'{root_path}/data/hirid-a-high-time-resolution-icu-dataset-1.1.1'
     
-    return data, res, raw_path, res_path
+    return mimic_data, mimic_path, hirid_data, hirid_path
 
 def setup_stratification_config():
     gender="MF"
     age_b=40
     age_a=80 
     ethnicity="WHITE" 
-    lab_mapping=constants.LAB_MAPPING
-    before_windows = [(0,12), (0,6)]
-    after_windows = [(0,1), (1,2), (2,3), (3,4), (4,5), (5,6), (6,7), (7,8), (8,9), (9,10), (10,11), (11,12)]
+    lab_mapping= constants.LAB_MAPPING
+    before_windows = [(0,12)]
+    after_windows = [(0,12)]
     return gender, age_a, age_b, ethnicity, lab_mapping, before_windows, after_windows
+# IO Config
+# root_path ="C:\\Users\\danco\\My Drive\\Master\\Datasets\\MIMIC iii"
+root_path = "/Users/pavan/Library/CloudStorage/GoogleDrive-f20190038@hyderabad.bits-pilani.ac.in/My Drive/TAU/Code/DrugLab"
+data, res, raw_path, res_path = setup_io_config(root_path=root_path)
 
-def mimic_analysis(data, res, gender, age_a, age_b, ethnicity, lab_mapping, before_windows, after_windows):
-    # MIMIC
-    mimic_parser = mimic.MIMICParser(data=data, res=res, gender=gender, age_b=age_b, age_a=age_a, ethnicity=ethnicity, lab_mapping=lab_mapping)
-    m_med1, m_med2, m_labs = mimic_parser.parse()
-    ## Querier
-    mimic_data_querier = querier.DatasetQuerier(
-        data = data,
-        res = res,
-        gender=gender, 
-        age_b=age_b, 
-        age_a=age_a, 
-        ethnicity=ethnicity, 
-        lab_mapping=lab_mapping
-    )
-    m_final_lab_med_data = mimic_data_querier.generate_med_lab_data(m_labs, m_med1, m_med2, before_windows, after_windows)
-    ## Discovery
-    discovery.ClinicalDiscoveryAnalysis()
-    ## Plots
-    plotter = plots.ClinicalPlotAnalysis(
-        data = data,
-        res = res,
-        gender=gender, 
-        age_b=age_b, 
-        age_a=age_a, 
-        ethnicity=ethnicity, 
-        lab_mapping=lab_mapping
-    )
-    m_corrs_data_df = plotter.plot(m_final_lab_med_data, m_labs, before_windows=before_windows, after_windows=after_windows)
-    return mimic_parser, m_med1, m_med2, m_labs, m_final_lab_med_data, plotter, m_corrs_data_df
+# Stratification Config
+gender, age_a, age_b, ethnicity, lab_mapping, before_windows, after_windows = setup_stratification_config()
+# MIMIC
+mimic_parser = mimic.MIMICParser(data=data, res=res, gender=gender, age_b=age_b, age_a=age_a, ethnicity=ethnicity, load="AUTOMATIC_MAPPING_MIMIC")
+m_med1, m_med2, m_labs = mimic_parser.parse(use_pairs=False, load_from_raw=False, load_raw_chartevents=False)
 
+## Querier
+mimic_data_querier = querier.DatasetQuerier(
+    data = data,
+    res = res,
+    t_labs=m_labs, 
+    t_med1=m_med1, 
+    t_med2=m_med2,
+    gender=gender, 
+    age_b=age_b, 
+    age_a=age_a, 
+    ethnicity=ethnicity, 
+    lab_mapping=lab_mapping
+)
+# query pairs for all medication and lab tests
+m_final_lab_med_data = mimic_data_querier.generate_med_lab_data(before_windows, after_windows)
+# Querying pairs for a single medication and lab test
+b_w = [(0,6), (6,12)]
+a_w = [(0,4), (4,8), (8,12)]
+med_lab_pair_1 = mimic_data_querier.query('Insulin - Regular', 'Glucose', b_w, a_w)
 
-def hirid_analysis(raw_path, res_path, gender, age_a, age_b, ethnicity, lab_mapping, before_windows, after_windows):
-    pass
+## Discovery Analysis for the queried medication and lab test pairs in the chosen before and after windows
+analyzer = discovery.ClinicalDiscoveryAnalysis(m_final_lab_med_data)
+pvals_med_lab = analyzer.analyze(before_windows, after_windows)
+sig_med_lab = analyzer.generate_significant(pvals_med_lab.dropna(subset=["TTest Paired"]))
 
-if __name__=="__main__":
-    # IO Config
-    root_path = "/Users/pavan/Library/CloudStorage/GoogleDrive-f20190038@hyderabad.bits-pilani.ac.in/My Drive/TAU/Code/DrugLab"
-    data, res, raw_path, res_path = setup_io_config(root_path=root_path)
-    
-    # Stratification Config
-    gender, age_a, age_b, ethnicity, lab_mapping, before_windows, after_windows = setup_stratification_config()
+## Plots
+plotter = plots.ClinicalPlotAnalysis(
+    data = data,
+    res = res,
+    gender=gender, 
+    age_b=age_b, 
+    age_a=age_a, 
+    ethnicity=ethnicity, 
+    lab_mapping=lab_mapping
+)
+m_corrs_data_df = plotter.plot(m_final_lab_med_data, m_labs, before_windows=before_windows, after_windows=after_windows)
+# HIRID
+hirid_mapping = constants.HIRID_MAPPING
+hirid_parser = hirid.HiRiDParser(data=raw_path, res=res_path, gender=gender, age_b=age_b, age_a=age_a, load="AUTOMATIC_MAPPING_HIRID")
+h_med1, h_med2, h_labs = hirid_parser.parse()
+lab_ids = [l for k in hirid_mapping.values() for l in k]
+h_labs_1 = h_labs[h_labs.OldITEMID.isin(lab_ids)]
 
-    # MIMIC
-    mimic_parser, m_med1, m_med2, m_labs, m_final_lab_med_data, plotter, m_corrs_data_df = mimic_analysis(data, res, raw_path, res_path, gender, age_a, age_b, ethnicity, lab_mapping, before_windows, after_windows)
-    
-    # HIRID
-    hirid_mapping = constants.HIRID_MAPPING
-    hirid_parser = hirid.HiRiDParser(data=raw_path, res=res_path, gender=gender, age_b=age_b, age_a=age_a)
-    h_med1, h_med2, h_labs = hirid_parser.parse()
-    lab_ids = [l for k in hirid_mapping.values() for l in k]
-    h_labs_1 = h_labs[h_labs.OldITEMID.isin(lab_ids)]
-    
-    hirid_data_querier = querier.DatasetQuerier(
-        data = raw_path,
-        res = res_path,
-        gender=gender, 
-        age_b=age_b, 
-        age_a=age_a, 
-        ethnicity=ethnicity, 
-    )
-    final_h_final_lab_med_data, raw_h_final_lab_med_data = hirid_data_querier.generate_med_lab_data(h_labs_1, h_med1, h_med2, before_windows, after_windows)
-    
-    h_plotter = plots.ClinicalPlotAnalysis(
-        data = raw_path,
-        res = res_path,
-        gender=gender, 
-        age_b=age_b, 
-        age_a=age_a, 
-        ethnicity="", 
-        lab_mapping={}
-    )
-    h_corrs_data_df = h_plotter.plot(final_h_final_lab_med_data, h_labs, before_windows=before_windows, after_windows=after_windows)
-    
-    
+hirid_data_querier = querier.DatasetQuerier(
+    data = raw_path,
+    res = res_path,
+    t_labs=h_labs, 
+    t_med1=h_med1, 
+    t_med2=h_med2,
+    gender=gender, 
+    age_b=age_b, 
+    age_a=age_a, 
+    ethnicity=ethnicity, 
+)
+final_h_final_lab_med_data, raw_h_final_lab_med_data = hirid_data_querier.generate_med_lab_data(before_windows, after_windows)
+
+h_plotter = plots.ClinicalPlotAnalysis(
+    data = raw_path,
+    res = res_path,
+    gender=gender, 
+    age_b=age_b, 
+    age_a=age_a, 
+    ethnicity="", 
+    lab_mapping={}
+)
+h_corrs_data_df = h_plotter.plot(final_h_final_lab_med_data, h_labs, before_windows=before_windows, after_windows=after_windows)
