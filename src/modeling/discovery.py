@@ -44,6 +44,7 @@ class ClinicalDiscoveryAnalysis:
                     row["Mannwhitneyu Test"] = 1
                     row["TTest Independent"] = 1
                     row["TTest Paired"] = 1
+                    row["No of Patients"] = 0
                     discovery_res.append(row)
                     continue
                 
@@ -56,7 +57,7 @@ class ClinicalDiscoveryAnalysis:
                 row["Mannwhitneyu Test"] = pval_m
                 row["TTest Independent"] = pval_t
                 row["TTest Paired"] = pval_t_p
-                
+                row["No of Patients"] = med_lab_data.shape[0]
                 discovery_res.append(row)
     
         return discovery_res
@@ -78,6 +79,7 @@ class ClinicalDiscoveryAnalysis:
             if len(res)>0:
                 discovery_res.append(res)
         res_df = pd.DataFrame(discovery_res)
+        res_df.to_csv("")
         return res_df
     
     def generate_significant(self, pvals_med_lab, alpha=0.01, statistical_test="TTest Paired"):
