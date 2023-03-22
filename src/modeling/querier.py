@@ -56,12 +56,14 @@ class DatasetQuerier(AnalysisUtils):
             if val_counts_m.shape[0]==0:
                 row[f"before_abs_{b_w}"] = {}
                 row[f"before_mean_{b_w}"] = {}
+                row[f"before_std_{b_w}"] = {}
                 row[f"before_trends_{b_w}"] = {}
                 row[f"before_time_{b_w}"] = {}
             else:
                 l_m = lab_vals[lab_vals.ITEMID.isin(val_counts_m.index)]
                 row[f"before_abs_{b_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].first()["VALUENUM"].dropna().to_dict()
                 row[f"before_mean_{b_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM"]].mean()["VALUENUM"].dropna().to_dict()
+                row[f"before_std_{b_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM"]].std()["VALUENUM"].dropna().to_dict()
                 row[f"before_trends_{b_w}"] = l_m[["VALUENUM", "hours_from_med", "ITEMID"]].dropna().groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].apply(lambda r : get_normalized_trend(r)).dropna().to_dict()
                 row[f"before_time_{b_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].first()["hours_from_med"].dropna().to_dict()
 
@@ -87,25 +89,27 @@ class DatasetQuerier(AnalysisUtils):
             if val_counts_m.shape[0]==0:
                 row[f"after_abs_{a_w}"] = {}
                 row[f"after_mean_{a_w}"] = {}
+                row[f"after_std_{a_w}"] = {}
                 row[f"after_trends_{a_w}"] = {}
                 row[f"after_time_{a_w}"] = {}
             else:
                 l_m = lab_vals[lab_vals.ITEMID.isin(val_counts_m.index)]
                 row[f"after_abs_{a_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].first()["VALUENUM"].dropna().to_dict()
                 row[f"after_mean_{a_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM"]].mean()["VALUENUM"].dropna().to_dict()
+                row[f"after_std_{a_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM"]].std()["VALUENUM"].dropna().to_dict()
                 row[f"after_trends_{b_w}"] = l_m[["VALUENUM", "hours_from_med", "ITEMID"]].dropna().groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].apply(lambda r : get_normalized_trend(r)).dropna().to_dict()
                 row[f"after_time_{a_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].first()["hours_from_med"].dropna().to_dict()
                 
         return row
     
-    def generate_med_lab_data(self, before_windows, after_windows):
+    def generate_med_lab_data(self, before_windows, after_windows, lab_parts=(0,50)):
         """
         Generate lab test values in before and after windows of medication
         """
         
         t_labs, t_med1, t_med2 = self.t_labs, self.t_med1, self.t_med2
         
-        all_types = set(["abs", "time"])
+        all_types = set(["abs", "mean", "std", "trends", "time"])
         cols_b = [f"before_{t}_{b_w}" for b_w in before_windows for t in all_types]
         cols_a = [f"after_{t}_{a_w}" for a_w in after_windows for t in all_types]
         cols = cols_b.copy()
@@ -114,7 +118,7 @@ class DatasetQuerier(AnalysisUtils):
 
         temp = temp.apply(lambda r : self.get_vals(r, t_labs, t_med1, t_med2, before_windows, after_windows), axis=1)
         self.temp = temp
-        temp.to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_first_val_{self.stratify_prefix}_doc_eval_new_win.csv"))
+        temp.to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_first_val_{self.stratify_prefix}_doc_eval_new_win_{lab_parts}.csv"))
         
         col_vals = []
         for col in cols:
@@ -132,7 +136,7 @@ class DatasetQuerier(AnalysisUtils):
         final = final.rename(columns={"ITEMID":"MED_NAME"})
         self.final = final
         
-        final.to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_trends_first_val_{self.stratify_prefix}_doc_eval_win.csv"))
+        final.to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_trends_first_val_{self.stratify_prefix}_doc_eval_win_{lab_parts}.csv"))
 
         return final, temp
     
@@ -166,7 +170,7 @@ class DatasetQuerier(AnalysisUtils):
         temp = temp.apply(lambda r : self.get_vals(r, labs_filtered, med1_filtered, med2_filtered, before_windows, after_windows), axis=1)
         # temp.to_csv(os.path.join(self.res, f"before_after_windows_med_lab_first_val_{self.stratify_prefix}_{med}_{lab}_doc_eval_new_win.csv"))
         
-        all_types = set(["abs", "mean", "trends", "time"])
+        all_types = set(["abs", "mean", "std", "trends", "time"])
         cols_b = [f"before_{t}_{b_w}" for b_w in before_windows for t in all_types]
         cols_a = [f"after_{t}_{a_w}" for a_w in after_windows for t in all_types]
         cols = cols_b.copy()
