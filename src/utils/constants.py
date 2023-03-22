@@ -36,7 +36,57 @@ LAB_MAPPING = {
     'Red blood cell': [51279, 833],
     'Albumin': [50862, 772, 1521, 227456],
     # Vital signs
-    
+    'Heart Rate': [211, 220045],
+    'Diastolic blood pressure': [8368,
+                                 220051,
+                                 225310,
+                                 8555,
+                                 8441,
+                                 220180,
+                                 8502,
+                                 8440,
+                                 8503,
+                                 8504,
+                                 8507,
+                                 8506,
+                                 224643],
+    'Systolic blood pressure': [51,
+                                220050,
+                                225309,
+                                6701,
+                                455,
+                                220179,
+                                3313,
+                                3315,
+                                442,
+                                3317,
+                                3323,
+                                3321,
+                                224167,
+                                227243],
+    'Temperature (C)': [3655,
+                        677,
+                        676,
+                        223762],
+    'Temperature (F)': [678,
+                        223761,
+                        679],
+    'Respiratory rate': [618,
+                         220210,
+                         3603,
+                         224689,
+                         614,
+                         651,
+                         224422,
+                         615,
+                         224690,
+                         619,
+                         224688],
+    'Pulse oximetry': [646, 220277],
+    'Oxygen saturation': [834,
+                          50817,
+                          8498,
+                          220227]
 }
 
 OLD_LAB_MAPPING = {
@@ -185,7 +235,7 @@ MIMIC_MED_MAPPING = {
     'Warfarin': [225913],
     'Haloperidol': [221824],
     'Ceftriaxone': [90018, 225855],
-    'Procainamide ': [50962, 45853]
+    'Procainamide ': [50962, 45853],
 }
 
 MIMIC_DICT_MED_MAPPING = {id: k for k,
@@ -194,7 +244,8 @@ MIMIC_III_PREPROCESSED_PATH = "mimiciii/1.4/preprocessed"
 MIMIC_III_RAW_PATH = "mimiciii/1.4/raw"
 MIMIC_III_MED_PREPROCESSED_FILE_PATH = "mimiciii_med_preprocessed.csv"
 
-MIMIC_III_MED_LAB_PAIRS = [('Acetylsalycilic acid (aspirin)', 'Hemoglobin'), ('Acetylsalycilic acid (aspirin)', 'platelets'), ('Amoxicilin-clavulanate', 'ALT'), ('Amoxicilin-clavulanate', 'AST'), ('Ceftriaxone', 'bilirubin'), ('Citalopram', 'sodium'), ('Clozapine', 'platelets'), ('Dabigatran', 'Aptt'), ('Esmoprazole', 'B12'), ('Fluoxetine', 'sodium'), ('Furosemide', 'magnesium'), ('Glibenclamide', 'glucose'), ('Glimepiride', 'glucose'), ('Haloperidol', 'prolactin'), ('Hydrochlorothiazide', 'Uric acid'), ('Hydrochlorothiazide', 'calcium'), ('Metformin', 'B12'), ('Metformin', 'lactic acid'), ('Omeprazole', 'B12'), ('Pantoprazole', 'B12'), ('Paracetamole (acetaminophen)', 'ALT'), ('Paroxetine', 'sodium'), ('Procainamide', 'ANA'), ('Quetiapine', 'prolactin'), ('Ramipril', 'potassium'), ('Rivaroxaban', 'INR'), ('Simvastatin', 'CPK'), ('Spironolactone', 'potassium'), ('Trimetoprim-sulphamethoxazole', 'creatinine'), ('Trimetoprim-sulphamethoxazole', 'potassium'), ('Valproic acid', 'Amylase'), ('Valproic acid', 'Lipase'), ('Valsartan', 'potassium'), ('Warfarin', 'INR'), ('Insulin - Regular', 'glucose'), ('Packed Red Blood Cells', 'Hemoglobin'), ('Calcium Gluconate (CRRT)', 'calcium'), ('Packed Red Blood Cells', 'Red blood cell'), ('Packed Red Blood Cells', 'Hematocrit'), ('Albumin', 'Albumin'), ('Albumin', 'Hematocrit'), ('Albumin 5%', 'Albumin'), ('Albumin 5%', 'Hematocrit'), ('Albumin 25%', 'Albumin'), ('Albumin 25%', 'Hematocrit'), ('Magnesium Sulfate', 'Magnesium')]
+MIMIC_III_MED_LAB_PAIRS = [('Acetylsalycilic acid (aspirin)', 'Hemoglobin'), ('Acetylsalycilic acid (aspirin)', 'platelets'), ('Amoxicilin-clavulanate', 'ALT'), ('Amoxicilin-clavulanate', 'AST'), ('Ceftriaxone', 'bilirubin'), ('Citalopram', 'sodium'), ('Clozapine', 'platelets'), ('Dabigatran', 'Aptt'), ('Esmoprazole', 'B12'), ('Fluoxetine', 'sodium'), ('Furosemide', 'magnesium'), ('Glibenclamide', 'glucose'), ('Glimepiride', 'glucose'), ('Haloperidol', 'prolactin'), ('Hydrochlorothiazide', 'Uric acid'), ('Hydrochlorothiazide', 'calcium'), ('Metformin', 'B12'), ('Metformin', 'lactic acid'), ('Omeprazole', 'B12'), ('Pantoprazole', 'B12'), ('Paracetamole (acetaminophen)', 'ALT'), ('Paroxetine', 'sodium'), ('Procainamide', 'ANA'), ('Quetiapine',
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  'prolactin'), ('Ramipril', 'potassium'), ('Rivaroxaban', 'INR'), ('Simvastatin', 'CPK'), ('Spironolactone', 'potassium'), ('Trimetoprim-sulphamethoxazole', 'creatinine'), ('Trimetoprim-sulphamethoxazole', 'potassium'), ('Valproic acid', 'Amylase'), ('Valproic acid', 'Lipase'), ('Valsartan', 'potassium'), ('Warfarin', 'INR'), ('Insulin - Regular', 'glucose'), ('Packed Red Blood Cells', 'Hemoglobin'), ('Calcium Gluconate (CRRT)', 'calcium'), ('Packed Red Blood Cells', 'Red blood cell'), ('Packed Red Blood Cells', 'Hematocrit'), ('Albumin', 'Albumin'), ('Albumin', 'Hematocrit'), ('Albumin 5%', 'Albumin'), ('Albumin 5%', 'Hematocrit'), ('Albumin 25%', 'Albumin'), ('Albumin 25%', 'Hematocrit'), ('Magnesium Sulfate', 'Magnesium')]
 
 MIMIC_III_LABEVENT_PREPROCESSED = "lab_patient_data_with_mimic_extract_names_1.csv"
 MIMIC_III_PREPROCESSED_LABDATA = "lab_patient_data_mimic_extract_2.csv"
@@ -216,6 +267,10 @@ HIRID_MAPPING = {
     # "Lipase":[24000555],
     # "Aptt":[20004410],
     # "albumin":[24000605],
-    "magnesium": [24000230]
+    "magnesium": [24000230],
+    'Respiratory rate': [5685, 300, 310],
+    'Heart rate':        [200],
+    'Peripheral oxygen saturation': [4000],
+    'Core body temperature': [410],
 }
 HIRID_LAB_IDS = [l for k in HIRID_MAPPING.values() for l in k]
