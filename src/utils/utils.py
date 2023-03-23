@@ -200,8 +200,12 @@ class AnalysisUtils:
             pharma_records_paths = [i for iq, i in enumerate(os.walk(os.path.join(self.data, "pharma_records"))) if iq==1][0][2]
             pharma_records = pd.concat([pd.read_csv(os.path.join(self.data, "pharma_records", 'csv', file)) for file in pharma_records_paths])
             pharma_records = pharma_records.rename(columns={"pharmaid":"variableid"})
-            pharma_records_with_name = pd.merge(pharma_records, self.h_var_ref, on="variableid", how="inner")
-            pharma_records_with_name = pd.merge(pharma_records_with_name, self.g_table, on="patientid", how="inner")
+            
+            g_table = pd.read_csv(os.path.join(self.data, 'general_table.csv'))
+            h_var_ref = pd.read_csv(os.path.join(self.data, 'hirid_variable_reference.csv')).rename(columns={"ID":"variableid"})
+        
+            pharma_records_with_name = pd.merge(pharma_records, h_var_ref, on="variableid", how="inner")
+            pharma_records_with_name = pd.merge(pharma_records_with_name, g_table, on="patientid", how="inner")
             pharma_records_with_name = pharma_records_with_name.rename(columns={
                 "givenat":"STARTTIME",
                 "admissiontime":"ADMITTIME",
@@ -214,7 +218,6 @@ class AnalysisUtils:
             })
             # get top k med and generate mapping
             self.med_mapping = {k[0]:k[1] for k in pharma_records_with_name.groupby(["ITEMID", "LABEL", "HADM_ID"]).count().reset_index()[["ITEMID", "LABEL", "HADM_ID"]].groupby(["ITEMID", "LABEL"]).count().sort_values("HADM_ID", ascending=False).head(num_meds).to_dict()["HADM_ID"].keys()}
-            self.med_mapping = None
             self.lab_mapping = lab_mapping if lab_mapping is not None else constants.HIRID_LAB_IDS
         else:
             print("No mapping type chosen. Running on all labtests and medications")
