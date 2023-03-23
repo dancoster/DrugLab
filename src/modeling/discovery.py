@@ -79,7 +79,6 @@ class ClinicalDiscoveryAnalysis:
             if len(res)>0:
                 discovery_res.append(res)
         res_df = pd.DataFrame(discovery_res)
-        # res_df.to_csv("")
         return res_df
     
     def generate_significant(self, pvals_med_lab, alpha=0.01, statistical_test="TTest Paired"):
