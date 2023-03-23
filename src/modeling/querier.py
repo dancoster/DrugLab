@@ -123,7 +123,7 @@ class DatasetQuerier(AnalysisUtils):
         col_vals = []
         for col in cols:
             col_vals.append(
-                temp.assign(dict=temp[col].map(lambda d: d.items())).explode("dict", ignore_index=True).assign(
+                temp.assign(dict=temp[col].dropna().map(lambda d: d.items())).explode("dict", ignore_index=True).assign(
                     LAB_ITEMID=lambda df: df.dict.str.get(0),
                     temp=lambda df: df.dict.str.get(1)
                 ).drop(columns=["dict"]+cols).astype({'temp':'float64'}).rename(columns={"temp":f"{col}_sp"}).dropna(subset=["LAB_ITEMID"])
@@ -179,7 +179,7 @@ class DatasetQuerier(AnalysisUtils):
         col_vals = []
         for col in cols:
             col_vals.append(
-                temp.assign(dict=temp[col].map(lambda d: d.items())).explode("dict", ignore_index=True).assign(
+                temp.assign(dict=temp[col].dropna().map(lambda d: d.items())).explode("dict", ignore_index=True).assign(
                     LAB_ITEMID=lambda df: df.dict.str.get(0),
                     temp=lambda df: df.dict.str.get(1)
                 ).drop(columns=["dict"]+cols).astype({'temp':'float64'}).rename(columns={"temp":f"{col}_sp"}).dropna(subset=["LAB_ITEMID"])
