@@ -7,7 +7,7 @@ class ClinicalDiscoveryAnalysis:
     def __init__(self, med_lab_pair_data):
         self.med_lab_pair_data = med_lab_pair_data
     
-    def statistical_tests(self, med_name, lab_name, before_windows, after_windows):
+    def statistical_tests(self, med_name, lab_name, before_windows, after_windows, min_patients=100, types_l=["abs"]):
         """Perform statistical tests on the before and after lab test values of given medication and lab test pairs. Comparision done between given before and after windows
 
         Args:
@@ -19,50 +19,47 @@ class ClinicalDiscoveryAnalysis:
         Returns:
             _type_: _description_
         """
-        med_lab_data = self.med_lab_pair_data.copy()
-        med_lab_data = med_lab_data[med_lab_data["LAB_NAME"]==lab_name]
-        med_lab_data = med_lab_data[med_lab_data["MED_NAME"]==med_name]
+        med_lab_data_orig = self.med_lab_pair_data.copy()
+        med_lab_data_orig = med_lab_data_orig[med_lab_data_orig["LAB_NAME"]==lab_name]
+        med_lab_data_orig = med_lab_data_orig[med_lab_data_orig["MED_NAME"]==med_name]
         
         discovery_res = []
         template = {
             "Lab Name" : lab_name,
             "Med Name": med_name
         }
-
-        for aw in after_windows:
-            for bw in before_windows:
-                # Initializing variable for a before and after window
-                row = template.copy()
-                t = "abs"
-                a, b = f"after_{t}_{aw}_sp", f"before_{t}_{bw}_sp"
-                row["Before Window (in Hours)"] = bw
-                row["After Window (in Hours)"] = aw
-                pvals, ttest = [], []
-                med_lab_data = med_lab_data.dropna(subset=[a,b])
                 
-                if med_lab_data.shape[0]==0:
-                    row["Mannwhitneyu Test"] = 1
-                    row["TTest Independent"] = 1
-                    row["TTest Paired"] = 1
-                    row["No of Patients"] = 0
-                    discovery_res.append(row)
-                    continue
-                
-                # Performing tests
-                c_m, pval_m = stats.mannwhitneyu(med_lab_data[b], med_lab_data[a])
-                c_t, pval_t = stats.ttest_ind(med_lab_data[b], med_lab_data[a])
-                c_t_p, pval_t_p = stats.ttest_rel(med_lab_data[b], med_lab_data[a])
-                
-                # Adding data to dataframe
-                row["Mannwhitneyu Test"] = pval_m
-                row["TTest Independent"] = pval_t
-                row["TTest Paired"] = pval_t_p
-                row["No of Patients"] = med_lab_data.shape[0]
-                discovery_res.append(row)
+        for t in types_l:
+            for aw in after_windows:
+                for bw in before_windows:
+                    med_lab_data = med_lab_data_orig
+                    # Initializing variable for a before and after window
+                    row = template.copy()
+                    t = "abs"
+                    a, b = f"after_{t}_{aw}_sp", f"before_{t}_{bw}_sp"
+                    row["Before Window (in Hours)"] = bw
+                    row["After Window (in Hours)"] = aw
+                    pvals, ttest = [], []
+                    med_lab_data = med_lab_data.dropna(subset=[a,b])
+                    
+                    if med_lab_data.shape[0]>=min_patients:
+                        
+                        # Performing tests
+                        c_m, pval_m = stats.mannwhitneyu(med_lab_data[b], med_lab_data[a])
+                        c_t, pval_t = stats.ttest_ind(med_lab_data[b], med_lab_data[a])
+                        c_t_p, pval_t_p = stats.ttest_rel(med_lab_data[b], med_lab_data[a])
+                        
+                        # Adding data to dataframe
+                        row["Mannwhitneyu Test"] = pval_m
+                        row["TTest Independent"] = pval_t
+                        row["TTest Paired"] = pval_t_p
+                        row["No of Patients"] = med_lab_data.shape[0]
+                        row["Type"] = t
+                        discovery_res.append(row)
     
         return discovery_res
     
-    def analyze(self, before_windows, after_windows):
+    def analyze(self, before_windows, after_windows, min_patients=100, types_l=["abs"]):
         """Perform statistical tests to generate p values for all medication<>lab test pairs in the given data
 
         Args:
@@ -75,7 +72,7 @@ class ClinicalDiscoveryAnalysis:
         pairs = self.med_lab_pair_data.groupby(["MED_NAME", "LAB_NAME"]).count().index        
         discovery_res = []
         for med_name, lab_name in pairs:
-            res = self.statistical_tests(med_name=med_name, lab_name=lab_name, before_windows=before_windows, after_windows=after_windows)
+            res = self.statistical_tests(med_name=med_name, lab_name=lab_name, before_windows=before_windows, after_windows=after_windows, min_patients=min_patients, types_l=types_l)
             if len(res)>0:
                 discovery_res.append(res)
         res_df = pd.DataFrame(discovery_res)
