@@ -6,7 +6,7 @@ import sys
 import os
 import pandas as pd
 
-def setup_io_config(root_path):
+def setup_io_config(root_path, data_path=None):
     """
     Input - Output config. Add dataset paths
     :root_path -> Repo path which contains 'data' and 'res' folders
@@ -20,12 +20,15 @@ def setup_io_config(root_path):
         shell = win32com.client.Dispatch("WScript.Shell")
         mimic_data = shell.CreateShortCut(path_shortcut).Targetpath
     else:
-        mimic_data = os.path.join(f"{root_path}", "data") 
+        if data_path is None:
+            mimic_data = os.path.join(f"{root_path}", "data") 
+        else:
+            mimic_data = data_path
     mimic_path = os.path.join(f"{root_path}", "results")
 
     # HIRID
-    hirid_data = f'{root_path}/data/hirid-a-high-time-resolution-icu-dataset-1.1.1/raw_stage/'
-    hirid_path = f'{root_path}/data/hirid-a-high-time-resolution-icu-dataset-1.1.1'
+    hirid_data = f'{data_path}/hirid-a-high-time-resolution-icu-dataset-1.1.1/raw_stage/'
+    hirid_path = f'{root_path}/results/hirid/'
     
     return mimic_data, mimic_path, hirid_data, hirid_path
 
@@ -44,7 +47,8 @@ def setup_stratification_config():
 # root_path ="C:\\Users\\danco\\My Drive\\Master\\Datasets\\MIMIC iii"
 # root_path = "/Users/pavan/Library/CloudStorage/GoogleDrive-f20190038@hyderabad.bits-pilani.ac.in/My Drive/TAU/Code/DrugLab"
 root_path = "/home/gaga/yannam/DrugLab"
-data, res, raw_path, res_path = setup_io_config(root_path=root_path)
+data_path = "/home/gaga/data/physionet/hirid"
+data, res, raw_path, res_path = setup_io_config(root_path=root_path, data_path=data_path)
 
 # Stratification Config
 gender, age_a, age_b, ethnicity, lab_mapping, before_windows, after_windows = setup_stratification_config()
