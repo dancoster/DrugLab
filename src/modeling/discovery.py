@@ -74,7 +74,7 @@ class ClinicalDiscoveryAnalysis:
         for med_name, lab_name in pairs:
             res = self.statistical_tests(med_name=med_name, lab_name=lab_name, before_windows=before_windows, after_windows=after_windows, min_patients=min_patients, types_l=types_l)
             if len(res)>0:
-                discovery_res.append(res)
+                discovery_res.extend(res)
         res_df = pd.DataFrame(discovery_res)
         if "TTest Paired" not in res_df.columns:
             data = res_df.to_dict()
