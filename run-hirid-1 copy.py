@@ -47,7 +47,7 @@ def setup_stratification_config():
 # root_path ="C:\\Users\\danco\\My Drive\\Master\\Datasets\\MIMIC iii"
 # root_path = "/Users/pavan/Library/CloudStorage/GoogleDrive-f20190038@hyderabad.bits-pilani.ac.in/My Drive/TAU/Code/DrugLab"
 root_path = "/home/gaga/yannam/DrugLab"
-data_path = "/home/gaga/data/physionet/hirid"
+data_path = "/home/gaga/data/physionet/HiRiD"
 data, res, raw_path, res_path = setup_io_config(root_path=root_path, data_path=data_path)
 
 # Stratification Config
