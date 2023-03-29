@@ -82,12 +82,12 @@ class MIMICParser(AnalysisUtils):
             med_preprocessed (_type_): Preprocessed medication data with medication names and medication administration times
             k (int, optional): kth Medication administered to patients. Defaults to 1.
         """
-        # med_k = med_preprocessed.groupby(["HADM_ID", "ITEMID"]).nth(k-1).reset_index()        
-        # # Making sure we only take 1st admission data of the patient. This also makes sure data related to one admission is only taken
-        # med_k = med_k.sort_values(by=["ADMITTIME"]).groupby(["SUBJECT_ID", "ITEMID"]).nth(0).reset_index().sort_values(by=["MedTimeFromAdmit"])
-        # # save
-        # med_k.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
-        med_k = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
+        med_k = med_preprocessed.groupby(["HADM_ID", "ITEMID"]).nth(k-1).reset_index()        
+        # Making sure we only take 1st admission data of the patient. This also makes sure data related to one admission is only taken
+        med_k = med_k.sort_values(by=["ADMITTIME"]).groupby(["SUBJECT_ID", "ITEMID"]).nth(0).reset_index().sort_values(by=["MedTimeFromAdmit"])
+        # save
+        med_k.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
+        # med_k = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
         return med_k
     
     def load_med_k_vect(self, med_preprocessed, k=1, load_from_raw=False):
