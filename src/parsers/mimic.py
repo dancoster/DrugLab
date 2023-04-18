@@ -119,7 +119,7 @@ class MIMICParser(AnalysisUtils):
         
         return med_k, h_adm_k
     
-    def generate_lab_vect(self, use_partitioned_files=False):
+    def generate_lab_vect(self, use_partitioned_files=False, lab_parts=(0,10)):
         """
         Generate vectorized version of Lab data
         """
@@ -162,7 +162,7 @@ class MIMICParser(AnalysisUtils):
         ### Reading chartevents data in chunks and saving the output CSV files for each chunck (batch processing). 
         ### The output of each chunk (csv file) is later concatenated and stored.
         if use_partitioned_files:
-            res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(67)]
+            res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(lab_parts[0], lab_parts[1])]
         else:
             res_paths = []
             count = 0
@@ -216,7 +216,7 @@ class MIMICParser(AnalysisUtils):
 
         return merged_chart_lab_events
 
-    def load_lab(self, h_med_adm1, load_from_raw=True, load_raw_chartevents=False):
+    def load_lab(self, h_med_adm1, load_from_raw=True, load_raw_chartevents=False, lab_parts=(0,10)):
         """
         Load lab test data from LABEVENTS and CHARTEVENTS tables
         """
@@ -226,7 +226,7 @@ class MIMICParser(AnalysisUtils):
             labs = labs.drop(columns=["Unnamed: 0"])
         else:
             bool_val = not load_raw_chartevents
-            labs = self.generate_lab_vect(use_partitioned_files=bool_val)
+            labs = self.generate_lab_vect(use_partitioned_files=bool_val, lab_parts=lab_parts)
         
         labs = labs[labs.HADM_ID.isin(h_med_adm1)]
         
@@ -244,7 +244,7 @@ class MIMICParser(AnalysisUtils):
         
         return labs
 
-    def parse(self, use_pairs=False, load_from_raw=True, load_raw_chartevents=False):
+    def parse(self, use_pairs=False, load_from_raw=True, load_raw_chartevents=False, lab_parts=(0,10)):
         """Loading medication and lab test. Performing basic preprocessing on data.
         
         Args:
@@ -267,7 +267,7 @@ class MIMICParser(AnalysisUtils):
         med2, _ = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=2, load_from_raw=load_from_raw)
         print(f"Loaded 1st and 2nd medication data.")
         print(f"Load Lab data...")
-        labs = self.load_lab(hadm1, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents)
+        labs = self.load_lab(hadm1, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents, lab_parts=lab_parts)
         print(f"Loaded Lab data.")
         
         t_med1, t_med2, t_labs = med1.copy(), med2.copy(), labs.copy()

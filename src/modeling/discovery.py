@@ -79,8 +79,8 @@ class ClinicalDiscoveryAnalysis:
         if "TTest Paired" not in res_df.columns:
             data = res_df.to_dict()
             data_final = [v for k, v in data[0].items() if 'nan' not in v]
-            pvals_med_lab = pd.DataFrame(data_final)
-        return pvals_med_lab
+            res_df = pd.DataFrame(data_final)
+        return res_df
     
     def generate_significant(self, pvals_med_lab, alpha=0.01, statistical_test="TTest Paired"):
         """Choose significant medication<>lab test pairs using Bonferroni and FDR analysis with pvals from the given statistical test
