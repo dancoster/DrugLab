@@ -97,7 +97,7 @@ class DatasetQuerier(AnalysisUtils):
                 row[f"after_abs_{a_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].first()["VALUENUM"].dropna().to_dict()
                 row[f"after_mean_{a_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM"]].mean()["VALUENUM"].dropna().to_dict()
                 row[f"after_std_{a_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM"]].std()["VALUENUM"].dropna().to_dict()
-                row[f"after_trends_{b_w}"] = l_m[["VALUENUM", "hours_from_med", "ITEMID"]].dropna().groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].apply(lambda r : get_normalized_trend(r)).dropna().to_dict()
+                row[f"after_trends_{a_w}"] = l_m[["VALUENUM", "hours_from_med", "ITEMID"]].dropna().groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].apply(lambda r : get_normalized_trend(r)).dropna().to_dict()
                 row[f"after_time_{a_w}"] = l_m.groupby(["ITEMID"])[["VALUENUM", "hours_from_med"]].first()["hours_from_med"].dropna().to_dict()
                 
         return row
@@ -116,9 +116,8 @@ class DatasetQuerier(AnalysisUtils):
         cols.extend(cols_a)
         temp = t_med1.copy()
 
-        temp = temp.apply(lambda r : self.get_vals(r, t_labs, t_med1, t_med2, before_windows, after_windows), axis=1)
-        self.temp = temp
-        temp.to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_first_val_{self.stratify_prefix}_doc_eval_new_win_{lab_parts}.csv"))
+        self.temp = temp.apply(lambda r : self.get_vals(r, t_labs, t_med1, t_med2, before_windows, after_windows), axis=1)
+        self.temp.to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_first_val_{self.stratify_prefix}_doc_eval_new_win_{lab_parts}.csv"))
         
         col_vals = []
         for col in cols:
