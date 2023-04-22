@@ -35,6 +35,16 @@ LAB_MAPPING = {
     'Hematocrit': [813, 220545, 51221, 50810],
     'Red blood cell': [51279, 833],
     'Albumin': [50862, 772, 1521, 227456],
+    
+    'Bicarbonate':[50882, 227443, 50803],
+    'Blood urea nitrogen':[51006, 781, 1162, 225624],
+    'Chloride':[50806, 220602, 226536, 1523, 788, 50902],
+    'Lactate dehydrogenase': [50954],
+    'Lymphocytes':[51244],
+    'Mean corpuscular volume':[51250],
+    'Neutrophils':[51256],
+    'White blood cell count':[861, 1542, 220546, 51301, 51300, 1127],
+
     # Vital signs
     'Heart Rate': [211, 220045],
     'Diastolic blood pressure': [8368,
@@ -174,6 +184,7 @@ OLD_LAB_MAPPING = {
     'Magnesium': {'Magnesium': [821, 1532, 220635, 50960]},
     'CPK': {}
 }
+CHARTEVENT_PARTS = 52
 
 LAB_VECT_COLS = ['ADMISSION_LOCATION',
                  'ADMISSION_TYPE',
@@ -304,4 +315,37 @@ HIRID_MED_MAPPING = {
     "Glucose": [1000022, 1000690, 1000689, 1000544, 1000835, 1000746, 1000060, 1000567],
     "Magnesium Sulfate": [1000421],
     "Magnesiocard 5 mmol sachet": [1000420],
+}
+
+HIRID_TO_MIMIC_CONV = {
+    "Hemoglobin":("g/l", "g/dl", 0.1),
+    "Magnesium": ("mmol/l", "mg/dL", 0.411),
+    "Albumin": ("g/L", "gr/dL", 0.1),
+    "Calcium": ("mmol/l", "mg/dL", 4.008),
+    "Creatinine": ("umol/l","mg/dL", 0.01131),
+    "Glucose": ("mmol/l", "mg/dL", 18),    
+}
+
+HIRID_MIMIC_FEATURE_MAPPING = {
+    'Albumin [Mass/volume] in Serum or Plasma' : 'Albumin',
+    'Bicarbonate [Moles/volume] in Arterial blood':'Bicarbonate',
+    'Calcium [Moles/volume] in Blood': 'Calcium', 
+    'Hemoglobin [Mass/volume] in blood': 'Hemoglobin',
+    'Chloride [Moles/volume] in Blood': 'Chloride', 
+    'Core body temperature': 'Temperature',
+    'Creatinine [Moles/volume] in Blood': 'Creatinine',
+    'Diastolic arterial pressure': 'Diastolic blood pressure',
+    'Glucose [Moles/volume] in Serum or Plasma': 'Glucose',
+    'Heart rate': 'Heart Rate',
+    'INR in Blood by Coagulation assay': 'Prothrombin time INR', 
+    'Lactate [Mass/volume] in blood': 'Lactic acid',
+    'Lymphocytes [#/volume] in Blood': 'Lymphocytes', 
+    'Magnesium [Moles/volume] in Blood': 'Magnesium',
+    'Neutrophils/100 leukocytes in Blood': 'Neutrophils', 
+    'Peripheral oxygen saturation': 'Oxygen saturation',  
+    'Platelets [#/volume] in Blood': 'Platelets', 
+    'Potassium [Moles/volume] in Blood': 'Potassium',
+    'Respiratory rate': 'Respiratory rate',
+    'Sodium [Moles/volume] in Blood': 'Sodium', 
+    'Systolic arterial pressure': 'Systolic blood pressure'
 }
