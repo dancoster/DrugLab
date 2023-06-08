@@ -93,7 +93,7 @@ class ClinicalDiscoveryAnalysis:
             _type_: _description_
         """
         
-        test_pval_data = pvals_med_lab.copy()
+        test_pval_data = pvals_med_lab.copy().reset_index().drop(columns=["index"])
         
         # pvals - Bonferrroni Analysis
         bonferroni_analysis = multipletests(test_pval_data[statistical_test], alpha=alpha, method='bonferroni')
