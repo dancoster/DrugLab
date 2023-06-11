@@ -1,6 +1,7 @@
 import scipy.stats as stats
 from statsmodels.stats.multitest import multipletests
 import pandas as pd
+import numpy as np
 
 
 class ClinicalDiscoveryAnalysis:
@@ -80,6 +81,50 @@ class ClinicalDiscoveryAnalysis:
             data = res_df.to_dict()
             data_final = [v for k, v in data[0].items() if 'nan' not in v]
             res_df = pd.DataFrame(data_final)
+        return res_df
+    
+    def analyze_ratio(self, before_windows, after_windows, min_patients=10):
+        med_lab_pairs = self.med_lab_pair_data
+        
+        for b_w in before_windows:
+            for a_w in after_windows:
+                med_lab_pairs[f"ratio_{b_w}_{a_w}"] = med_lab_pairs[f"after_abs_{a_w}_sp"] / med_lab_pairs[f"before_abs_{b_w}_sp"]
+        
+        if sorted(after_windows)[0][0]==0 and sorted(before_windows)[0][0]==0:
+            a_w = sorted(after_windows)[0]
+            b_w = sorted(before_windows)[0]
+            t = med_lab_pairs.dropna(subset=[f"ratio_{b_w}_{a_w}"])
+            if t[t[f"ratio_{b_w}_{a_w}"]==1].shape[0]>100:
+                med_lab_pairs = pd.concat([ med_lab_pairs[(med_lab_pairs[f"after_time_{a_w}_sp"]<1) & (med_lab_pairs[f"ratio_{b_w}_{a_w}"]!=1)], med_lab_pairs[(med_lab_pairs[f"after_time_{a_w}_sp"]>=1) | (med_lab_pairs[f"after_time_{a_w}_sp"].isna())] ])
+        
+        med_lab_pairs.groupby(["MED_NAME", "LAB_NAME"]).count()[["HADM_ID"]]
+        pairs_df = med_lab_pairs.groupby(["MED_NAME", "LAB_NAME"]).count()[["HADM_ID"]]
+        pairs = pairs_df[pairs_df["HADM_ID"]>100].index
+        
+        discovery_res1 = []
+        for med_name, lab_name in pairs:
+            stat_test_df = []
+            for a_w in after_windows:
+                for b_w in before_windows:
+                    vals = med_lab_pairs[med_lab_pairs["LAB_NAME"]==lab_name]
+                    vals = vals[vals["MED_NAME"]==med_name]
+                    vals = vals[f"ratio_{b_w}_{a_w}"].replace([np.inf, -np.inf], np.nan).dropna()
+                    if vals.shape[0]>min_patients:
+                        res = stats.ttest_1samp(vals.to_numpy(), popmean=1)
+                        row = {
+                            "Lab Name": lab_name,
+                            "Med Name": med_name,
+                            "Before Window (in Hours)": b_w,
+                            "After Window (in Hours)": a_w,
+                            "No. of Patients": vals.shape[0],
+                            "1-Sampled Ttest" : res.pvalue
+                        }
+                        stat_test_df.append(row)
+            if len(stat_test_df)>0:
+                discovery_res1.extend(stat_test_df)
+        
+        res_df = pd.DataFrame(discovery_res1)
+        # res_df[res_df["No. of Patients"]>min_patients]
         return res_df
     
     def generate_significant(self, pvals_med_lab, alpha=0.01, statistical_test="TTest Paired"):
