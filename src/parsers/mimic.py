@@ -259,7 +259,7 @@ class MIMICParser(AnalysisUtils):
         
         return labs
 
-    def parse(self, use_pairs=False, load_from_raw=True, load_raw_chartevents=False, lab_parts=(0,10), lab=None):
+    def parse(self, use_pairs=False, load_from_raw=False, load_raw_chartevents=True, lab_parts=(0,10), lab=None, n_meds=False, n_med_limit=500):
         """Loading medication and lab test. Performing basic preprocessing on data.
         
         Args:
@@ -277,23 +277,58 @@ class MIMICParser(AnalysisUtils):
         med_preprocessed = self.stratify_med_data(med_preprocessed)
         print(f"Loaded med data.")
         
-        print(f"Load 1st and 2nd medication data...")
-        med1, hadm1 = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=1, load_from_raw=load_from_raw)
-        med2, _ = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=2, load_from_raw=load_from_raw)
-        print(f"Loaded 1st and 2nd medication data.")
-        print(f"Load Lab data...")
-        labs = self.load_lab(hadm1, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents, lab_parts=lab_parts, lab=lab)
-        print(f"Loaded Lab data.")
-        
-        t_med1, t_med2, t_labs = med1.copy(), med2.copy(), labs.copy()
-        if use_pairs:
-            med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
-            t_med1 = med1[med1["MIMICExtractLabel"].isin(med_vals_new)]
-            t_med2 = med2[med2["MIMICExtractLabel"].isin(med_vals_new)]
-            t_labs = labs[labs["MIMICExtractName"].isin(labtest_vals_new)]
+        print(f"Load Med data...")
+        if n_meds:
+            med_n = []
+            i = 1
             
-        t_med1 = t_med1.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
-        t_med2 = t_med2.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
-        t_labs = t_labs.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractName":"ITEMID"})
-
-        return t_med1, t_med2, t_labs
+            # Load med 1 and lab data
+            med, hadm = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=i, load_from_raw=load_from_raw)
+            
+            print(f"Load Lab data...")
+            labs = self.load_lab(hadm, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents, lab_parts=lab_parts, lab=lab)
+            t_labs = labs.copy()
+            if use_pairs:
+                med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
+                t_labs = labs[labs["MIMICExtractName"].isin(labtest_vals_new)]
+            t_labs = t_labs.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractName":"ITEMID"})
+            print(f"Loaded Lab data.")
+            
+            # load med 1 to n (decide by med data available)
+            while med.shape[0]>0 and med.shape[0]>n_med_limit:  
+                print(f"Loading {i} med data...")
+                if use_pairs:
+                    med = med[med["MIMICExtractLabel"].isin(med_vals_new)]
+                med = med.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
+                
+                med_n.append(med)
+                print(f"Loaded {i} med data with {med.shape[0]} medication administrations.")
+                
+                i+=1
+                med, _ = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=i, load_from_raw=load_from_raw)
+                
+            return med_n, t_labs
+        else:
+            print(f"Load 1st and 2nd medication data...")
+            med1, hadm1 = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=1, load_from_raw=load_from_raw)
+            med2, _ = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=2, load_from_raw=load_from_raw)
+            print(f"Loaded 1st and 2nd medication data.")
+            
+            print(f"Load Lab data...")
+            labs = self.load_lab(hadm1, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents, lab_parts=lab_parts, lab=lab)
+            t_labs = labs.copy()
+            if use_pairs:
+                med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
+                t_labs = labs[labs["MIMICExtractName"].isin(labtest_vals_new)]
+            t_labs = t_labs.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractName":"ITEMID"})
+            print(f"Loaded Lab data.")
+            
+            t_med1, t_med2 = med1.copy(), med2.copy()
+            if use_pairs:
+                t_med1 = med1[med1["MIMICExtractLabel"].isin(med_vals_new)]
+                t_med2 = med2[med2["MIMICExtractLabel"].isin(med_vals_new)]
+                
+            t_med1 = t_med1.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
+            t_med2 = t_med2.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
+            
+            return t_med1, t_med2, t_labs

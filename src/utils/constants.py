@@ -276,7 +276,7 @@ HIRID_MAPPING = {
     # "Aptt":[20004410],
     "albumin": [24000605],
     "magnesium": [24000230],
-    'Respiratory rate': [5685, 300, 310],
+    'Respiratory rate': [5685, 310],
     'Heart rate':        [200],
     'Peripheral oxygen saturation': [4000],
     'Core body temperature': [410],
@@ -318,13 +318,30 @@ HIRID_MED_MAPPING = {
 }
 
 HIRID_TO_MIMIC_CONV = {
+    'Bicarbonate':("","", 1),
+    'Chloride':("","", 1),
+    'Diastolic blood pressure':("","", 1),
+    'Heart Rate':("","", 1),
+    'Prothrombin time INR':("","", 1),
+    'Lactic acid':("","", 1),
+    'Oxygen saturation':("","", 1),
+    'Platelets':("","", 1),
+    'Potassium':("","", 1),
+    'Respiratory rate':("","", 1),
+    'Sodium':("","", 1),
+    'Systolic blood pressure':("","", 1),
+    'Temperature':("","", 1),
+    # unit conversion
+    'Neutrophils': ("","%",18),
     "Hemoglobin":("g/l", "g/dl", 0.1),
     "Magnesium": ("mmol/l", "mg/dL", 0.411),
     "Albumin": ("g/L", "gr/dL", 0.1),
     "Calcium": ("mmol/l", "mg/dL", 4.008),
     "Creatinine": ("umol/l","mg/dL", 0.01131),
-    "Glucose": ("mmol/l", "mg/dL", 18),    
+    "Glucose": ("mmol/l", "mg/dL", 18),
+    'Lymphocytes':("","",1),    
 }
+
 
 HIRID_MIMIC_FEATURE_MAPPING = {
     'Albumin [Mass/volume] in Serum or Plasma' : 'Albumin',
