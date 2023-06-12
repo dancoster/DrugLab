@@ -37,6 +37,28 @@ class HiRiDParser(AnalysisUtils):
             "age":"AGE",
             "sex":"GENDER",
         })
+        
+    def load_medk(self, k):
+        """
+        Load kth Medication data
+        """
+
+        med1 = self.pharma_records_with_name.sort_values(["HADM_ID", "STARTTIME"]).groupby(["HADM_ID", "ITEMID"]).nth(k-1).reset_index()
+
+        # stratification
+        h_adm_1 = med1["HADM_ID"].to_list()
+        med1 = med1[med1["AGE"]>=self.age_b]
+        med1 = med1[med1["AGE"]<=self.age_a]
+        med1 = med1[med1["GENDER"]==self.gender] if self.gender != "MF" else med1
+
+        med1["STARTTIME"] = pd.to_datetime(med1["STARTTIME"])
+        med1["ENDTIME"] = pd.to_datetime(med1["ENDTIME"])
+        med1["ADMITTIME"] = pd.to_datetime(med1["ADMITTIME"])
+        med1["MedTimeFromAdmit"] = med1["STARTTIME"]-med1["ADMITTIME"]
+        med1["hours_in"] = med1["MedTimeFromAdmit"].dt.total_seconds()/3600
+        self.med1 = med1
+
+        return med1, h_adm_1
 
     def load_med1(self):
         """
@@ -87,12 +109,15 @@ class HiRiDParser(AnalysisUtils):
         labs = labs[labs.variableid.isin(self.lab_mapping)]
         return labs
 
-    def load_lab(self, h_med_adm1, h_med_adm2, n_parts=(0,50)):
+    def load_lab(self, hadms, n_parts=(0,50)):
         """
         Load lab test data from LABEVENTS and CHARTEVENTS tables
         """
+        hadms_ls = []
+        [hadms_ls.extend(el) for el in hadms] 
+
         observation_tables_paths = sorted([i for iq, i in enumerate(os.walk(os.path.join(self.data, "observation_tables 2"))) if iq==1][0][2])
-        observation_tables_part = pd.concat([self.read_lab(os.path.join(self.data, "observation_tables 2", 'csv', file), h_med_adm1+h_med_adm2) for file in observation_tables_paths[n_parts[0] : min(len(observation_tables_paths), n_parts[1])]])
+        observation_tables_part = pd.concat([self.read_lab(os.path.join(self.data, "observation_tables 2", 'csv', file), hadms_ls) for file in observation_tables_paths[n_parts[0] : min(len(observation_tables_paths), n_parts[1])]])
 
         observation_tables_part_with_name = pd.merge(observation_tables_part, self.h_var_ref, on="variableid", how="inner")
         observation_tables_part_with_name = pd.merge(observation_tables_part_with_name, self.g_table, on="patientid", how="inner")
@@ -123,25 +148,30 @@ class HiRiDParser(AnalysisUtils):
         
         return labs
 
-    def parse(self, use_pairs=False, lab_parts=(0,50)):
+    def parse(self, use_pairs=False, lab_parts=(0,50), n_med_limit=500):
         """
         Loading medication and lab test. Performing basic preprocessing on data.
         """
-        self.load_med()
-        med1, hadm1 = self.load_med1()
-        med2, hadm2 = self.load_med2()
-        labs = self.load_lab(hadm1, hadm2, n_parts=lab_parts)
         
-        t_med1, t_med2, t_labs = med1.copy(), med2.copy(), labs.copy()
+        self.load_med()
+        meds, hadms = [], []
+        i=1
+        med, hadm = self.load_medk(i)
+        while med.shape[0]>n_med_limit:
+            meds.append(med)
+            hadms.append(hadm)
+            i+=1
+            med, hadm = self.load_medk(i)
+        
+        labs = self.load_lab(hadms, n_parts=lab_parts)
+        t_labs = labs.copy()
         
         if use_pairs:
             med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
-            t_med1 = med1[med1["LABEL"].isin(med_vals_new)]
-            t_med2 = med2[med2["LABEL"].isin(med_vals_new)]
+            meds = [med[med["LABEL"].isin(med_vals_new)] for med in meds]
             t_labs = labs[labs["LABEL"].isin(labtest_vals_new)]
             
-        t_med1 = t_med1.rename(columns={"ITEMID":"OldITEMID", "LABEL":"ITEMID"})
-        t_med2 = t_med2.rename(columns={"ITEMID":"OldITEMID", "LABEL":"ITEMID"})
+        meds = [med.rename(columns={"ITEMID":"OldITEMID", "LABEL":"ITEMID"}) for med in meds]
         t_labs = t_labs.rename(columns={"ITEMID":"OldITEMID", "LABEL":"ITEMID"})
 
-        return t_med1, t_med2, t_labs
+        return meds, t_labs

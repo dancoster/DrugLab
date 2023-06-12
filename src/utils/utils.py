@@ -201,8 +201,8 @@ class AnalysisUtils:
             pharma_records = pd.concat([pd.read_csv(os.path.join(self.data, "pharma_records", 'csv', file)) for file in pharma_records_paths])
             pharma_records = pharma_records.rename(columns={"pharmaid":"variableid"})
             
-            g_table = pd.read_csv(os.path.join(self.data, 'general_table.csv'))
-            h_var_ref = pd.read_csv(os.path.join(self.data, 'hirid_variable_reference.csv')).rename(columns={"ID":"variableid"})
+            g_table = pd.read_csv(os.path.join(self.res, 'general_table.csv'))
+            h_var_ref = pd.read_csv(os.path.join(self.res, 'hirid_variable_reference.csv')).rename(columns={"ID":"variableid"})
         
             pharma_records_with_name = pd.merge(pharma_records, h_var_ref, on="variableid", how="inner")
             pharma_records_with_name = pd.merge(pharma_records_with_name, g_table, on="patientid", how="inner")
