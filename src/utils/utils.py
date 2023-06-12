@@ -4,6 +4,7 @@ from matplotlib.patches import Rectangle
 import seaborn as sns
 import pandas as pd
 import os
+from sklearn import linear_model
 
 from src.utils import constants
 
@@ -124,7 +125,7 @@ def check_med2(row):
 def get_med2(row):
     temp = t_med2[t_med2["HADM_ID"]==row["HADM_ID"]] 
     return temp[temp["ITEMID"]==row["ITEMID"]].iloc[0]
-from sklearn import datasets, linear_model, metrics
+
 
 def get_normalized_trend(data):
     selected = data[['VALUENUM', 'hours_from_med']]
