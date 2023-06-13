@@ -82,12 +82,12 @@ class MIMICParser(AnalysisUtils):
             med_preprocessed (_type_): Preprocessed medication data with medication names and medication administration times
             k (int, optional): kth Medication administered to patients. Defaults to 1.
         """
-        # med_k = med_preprocessed.groupby(["HADM_ID", "ITEMID"]).nth(k-1).reset_index()        
-        # # Making sure we only take 1st admission data of the patient. This also makes sure data related to one admission is only taken
-        # med_k = med_k.sort_values(by=["ADMITTIME"]).groupby(["SUBJECT_ID", "ITEMID"]).nth(0).reset_index().sort_values(by=["MedTimeFromAdmit"])
-        # # save
-        # med_k.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
-        med_k = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
+        med_k = med_preprocessed.groupby(["HADM_ID", "ITEMID"]).nth(k-1).reset_index()        
+        # Making sure we only take 1st admission data of the patient. This also makes sure data related to one admission is only taken
+        med_k = med_k.sort_values(by=["ADMITTIME"]).groupby(["SUBJECT_ID", "ITEMID"]).nth(0).reset_index().sort_values(by=["MedTimeFromAdmit"])
+        # save
+        med_k.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
+        # med_k = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"med{k}_vectorized.csv"))
         return med_k
     
     def load_med_k_vect(self, med_preprocessed, k=1, load_from_raw=False):
@@ -119,7 +119,7 @@ class MIMICParser(AnalysisUtils):
         
         return med_k, h_adm_k
     
-    def generate_lab_vect(self, use_partitioned_files=False):
+    def generate_lab_vect(self, use_partitioned_files=False, lab_parts=(0,10), lab=None):
         """
         Generate vectorized version of Lab data
         """
@@ -136,6 +136,8 @@ class MIMICParser(AnalysisUtils):
         print("Generate lab data from labevents...")
         if use_partitioned_files:
             labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
+            if lab is not None:
+                labevents = labevents[labevents["MIMICExtractName"]==lab]
         else:
             labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "LABEVENTS.csv.gz"))
 
@@ -162,11 +164,14 @@ class MIMICParser(AnalysisUtils):
         ### Reading chartevents data in chunks and saving the output CSV files for each chunck (batch processing). 
         ### The output of each chunk (csv file) is later concatenated and stored.
         if use_partitioned_files:
-            res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(67)]
+            if lab is not None:
+                res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(0, constants.CHARTEVENT_PARTS)]
+            else:
+                res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(lab_parts[0], lab_parts[1])]
         else:
             res_paths = []
             count = 0
-            with pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "CHARTEVENTS.csv.gz"), chunksize=5_000_000) as reader:
+            with pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "CHARTEVENTS.csv.gz"), chunksize=50_000_000) as reader:
                 for chunk in reader:
                     print(count, chunk.shape)
                     path = os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz")
@@ -181,7 +186,14 @@ class MIMICParser(AnalysisUtils):
                         print(count, 0)    
                     count += 1
         
-        chartevents = pd.concat([pd.read_csv(path) for path in res_paths], ignore_index=True) ## concatenation of output from each chunk
+        def load_lab_chartevents(path, lab=None):
+            if lab is None:
+                return pd.read_csv(path)
+            else:
+                print(f"Loading {lab} data from CHARTEVENTS...")
+                df = pd.read_csv(path)
+                return df[df["MIMICExtractName"]==lab]
+        chartevents = pd.concat([load_lab_chartevents(path, lab=lab) for path in res_paths], ignore_index=True) ## concatenation of output from each chunk
 
         ### Preprocessing of chartevents table and adding requried fields like "age at admit time"
         chartevents["TABLE"] = chartevents.apply(lambda r: "CHARTEVENTS", axis=1)
@@ -212,11 +224,14 @@ class MIMICParser(AnalysisUtils):
         merged_chart_lab_events = merged_chart_lab_events[merged_chart_lab_events["AGE"]>0]
         merged_chart_lab_events = merged_chart_lab_events.groupby(["HADM_ID", "ADMITTIME", "CHARTTIME", "VALUENUM", "MIMICExtractName"]).nth(0).reset_index()
         merged_chart_lab_events = merged_chart_lab_events.dropna(subset=['VALUENUM'])
-        merged_chart_lab_events.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_PREPROCESSED_LABDATA))
+        if lab is not None:
+            merged_chart_lab_events.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"{lab}_{constants.MIMIC_III_PREPROCESSED_LABDATA}"))
+        else:
+            merged_chart_lab_events.to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, f"{constants.MIMIC_III_PREPROCESSED_LABDATA}"))
 
         return merged_chart_lab_events
 
-    def load_lab(self, h_med_adm1, load_from_raw=True, load_raw_chartevents=False):
+    def load_lab(self, h_med_adm1, load_from_raw=True, load_raw_chartevents=False, lab_parts=(0,10), lab=None):
         """
         Load lab test data from LABEVENTS and CHARTEVENTS tables
         """
@@ -226,7 +241,7 @@ class MIMICParser(AnalysisUtils):
             labs = labs.drop(columns=["Unnamed: 0"])
         else:
             bool_val = not load_raw_chartevents
-            labs = self.generate_lab_vect(use_partitioned_files=bool_val)
+            labs = self.generate_lab_vect(use_partitioned_files=bool_val, lab_parts=lab_parts, lab=lab)
         
         labs = labs[labs.HADM_ID.isin(h_med_adm1)]
         
@@ -244,7 +259,7 @@ class MIMICParser(AnalysisUtils):
         
         return labs
 
-    def parse(self, use_pairs=False, load_from_raw=True, load_raw_chartevents=False):
+    def parse(self, use_pairs=False, load_from_raw=False, load_raw_chartevents=True, lab_parts=(0,10), lab=None, n_meds=False, n_med_limit=500):
         """Loading medication and lab test. Performing basic preprocessing on data.
         
         Args:
@@ -262,23 +277,58 @@ class MIMICParser(AnalysisUtils):
         med_preprocessed = self.stratify_med_data(med_preprocessed)
         print(f"Loaded med data.")
         
-        print(f"Load 1st and 2nd medication data...")
-        med1, hadm1 = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=1, load_from_raw=load_from_raw)
-        med2, _ = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=2, load_from_raw=load_from_raw)
-        print(f"Loaded 1st and 2nd medication data.")
-        print(f"Load Lab data...")
-        labs = self.load_lab(hadm1, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents)
-        print(f"Loaded Lab data.")
-        
-        t_med1, t_med2, t_labs = med1.copy(), med2.copy(), labs.copy()
-        if use_pairs:
-            med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
-            t_med1 = med1[med1["MIMICExtractLabel"].isin(med_vals_new)]
-            t_med2 = med2[med2["MIMICExtractLabel"].isin(med_vals_new)]
-            t_labs = labs[labs["MIMICExtractName"].isin(labtest_vals_new)]
+        print(f"Load Med data...")
+        if n_meds:
+            med_n = []
+            i = 1
             
-        t_med1 = t_med1.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
-        t_med2 = t_med2.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
-        t_labs = t_labs.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractName":"ITEMID"})
-
-        return t_med1, t_med2, t_labs
+            # Load med 1 and lab data
+            med, hadm = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=i, load_from_raw=load_from_raw)
+            
+            print(f"Load Lab data...")
+            labs = self.load_lab(hadm, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents, lab_parts=lab_parts, lab=lab)
+            t_labs = labs.copy()
+            if use_pairs:
+                med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
+                t_labs = labs[labs["MIMICExtractName"].isin(labtest_vals_new)]
+            t_labs = t_labs.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractName":"ITEMID"})
+            print(f"Loaded Lab data.")
+            
+            # load med 1 to n (decide by med data available)
+            while med.shape[0]>0 and med.shape[0]>n_med_limit:  
+                print(f"Loading {i} med data...")
+                if use_pairs:
+                    med = med[med["MIMICExtractLabel"].isin(med_vals_new)]
+                med = med.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
+                
+                med_n.append(med)
+                print(f"Loaded {i} med data with {med.shape[0]} medication administrations.")
+                
+                i+=1
+                med, _ = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=i, load_from_raw=load_from_raw)
+                
+            return med_n, t_labs
+        else:
+            print(f"Load 1st and 2nd medication data...")
+            med1, hadm1 = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=1, load_from_raw=load_from_raw)
+            med2, _ = self.load_med_k_vect(med_preprocessed=med_preprocessed, k=2, load_from_raw=load_from_raw)
+            print(f"Loaded 1st and 2nd medication data.")
+            
+            print(f"Load Lab data...")
+            labs = self.load_lab(hadm1, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents, lab_parts=lab_parts, lab=lab)
+            t_labs = labs.copy()
+            if use_pairs:
+                med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
+                t_labs = labs[labs["MIMICExtractName"].isin(labtest_vals_new)]
+            t_labs = t_labs.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractName":"ITEMID"})
+            print(f"Loaded Lab data.")
+            
+            t_med1, t_med2 = med1.copy(), med2.copy()
+            if use_pairs:
+                t_med1 = med1[med1["MIMICExtractLabel"].isin(med_vals_new)]
+                t_med2 = med2[med2["MIMICExtractLabel"].isin(med_vals_new)]
+                
+            t_med1 = t_med1.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
+            t_med2 = t_med2.rename(columns={"LABEL":"OldLabel", "ITEMID":"OldITEMID", "MIMICExtractLabel":"ITEMID"})
+            
+            return t_med1, t_med2, t_labs
