@@ -15,6 +15,4 @@ results/*
 .DS_Store
 .idea/workspace.xml
 mimic-notebook-analysis/.ipynb_checkpoints/Untitled-checkpoint.ipynb
-temp_med_lab_pairs.csv
-.gitignore
-temp_pvals_med_lab_pairs_1-12.csv
+temp*
