@@ -181,7 +181,7 @@ class DatasetQuerier(AnalysisUtils):
         filter_col = constants.ID_COL if use_id else constants.NAME_ID_COL
                 
         t_labs =  self.t_labs[self.t_labs[filter_col]==lab]
-        n_meds = [med1[med1[filter_col]==med] for med1 in n_meds if med1[med1[filter_col]==med].shape[0]>0]
+        n_meds = [med1[med1[filter_col]==med] for med1 in self.meds if med1[med1[filter_col]==med].shape[0]>0]
         
         
         if n_meds[0].shape[0]==0:
