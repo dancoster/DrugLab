@@ -128,7 +128,7 @@ class MIMICParser(AnalysisUtils):
         admits = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "ADMISSIONS.csv.gz"))
         patients = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "PATIENTS.csv.gz"))
 
-        ### Final Mapping (from the above "lab_itemids" dictionary, ie, output of manual mapping from mimic extract) in the required format
+        #### Final Mapping (from the above "lab_itemids" dictionary, ie, output of manual mapping from mimic extract) in the required format
         final_mapping_lab_itemids = {v2:k for k, v in self.lab_mapping.items() for v2 in v}
         final_itemids_list = list(final_mapping_lab_itemids.keys())
         
@@ -141,7 +141,7 @@ class MIMICParser(AnalysisUtils):
         else:
             labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "LABEVENTS.csv.gz"))
 
-            # ### Preprocessing labevents data to add requried features like "MIMIC Extract Names" and "age at admit time"
+            #### Preprocessing labevents data to add requried features like "MIMIC Extract Names" and "age at admit time"
             labevents = labevents[labevents.ITEMID.isin(final_itemids_list)]
             labevents["MIMICExtractName"] = labevents.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
             labevents["TABLE"] = labevents.apply(lambda r: "LABEVENTS", axis=1)
@@ -164,7 +164,7 @@ class MIMICParser(AnalysisUtils):
         ### Reading chartevents data in chunks and saving the output CSV files for each chunck (batch processing). 
         ### The output of each chunk (csv file) is later concatenated and stored.
         if use_partitioned_files:
-            if lab is not None:
+            if lab_parts is not None:
                 res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(0, constants.CHARTEVENT_PARTS)]
             else:
                 res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(lab_parts[0], lab_parts[1])]
@@ -264,7 +264,7 @@ class MIMICParser(AnalysisUtils):
         
         Args:
             use_pairs (bool, optional): _description_. Defaults to True.
-            load_from_raw (bool, optional): Load preprocessed med files from raw MIMIC tables instead of using the previosu prepocessed files. Defaults to True.
+            load_from_raw (bool, optional): Load preprocessed med files from raw MIMIC tables instead of using the previous preprocessed files. Defaults to True.
 
         Returns:
             pd.DataFrame: 1st medication data
