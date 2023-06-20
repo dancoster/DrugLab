@@ -136,8 +136,6 @@ class MIMICParser(AnalysisUtils):
         print("Generate lab data from labevents...")
         if use_partitioned_files:
             labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
-            if lab is not None:
-                labevents = labevents[labevents["MIMICExtractName"]==lab]
         else:
             labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "LABEVENTS.csv.gz"))
 
@@ -157,7 +155,11 @@ class MIMICParser(AnalysisUtils):
             columns = constants.LAB_VECT_COLS
             columns.extend(['ROW_ID_x', 'TABLE'])
             labevents[columns].to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
-        print("Generated lab data from labevents.") 
+
+        if lab is not None:
+            labevents = labevents[labevents["MIMICExtractName"]==lab]
+
+        print("Generated lab data from labevents.")
         
         print("Generate lab data from chartevents...")
         ## Chartevents
