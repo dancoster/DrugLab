@@ -71,7 +71,7 @@ class MIMICParser(AnalysisUtils):
         m_p_df = m_p_df[m_p_df["AGE"]>=self.age_b]
         m_p_df = m_p_df[m_p_df["AGE"]<=self.age_a]
         m_p_df = m_p_df[m_p_df["GENDER"]==self.gender] if self.gender != "MF" else m_p_df
-        m_p_df = m_p_df[m_p_df["ETHNICITY"]==self.ethnicity]
+        m_p_df = m_p_df[m_p_df["ETHNICITY"]==self.ethnicity] if self.ethnicity != "ALL" else m_p_df
         
         return m_p_df
 
