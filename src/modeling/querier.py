@@ -1,10 +1,11 @@
 import pandas as pd
 import os
-import tqdm
-
+from tqdm import tqdm
+import json
 from src.utils.utils import AnalysisUtils, get_normalized_trend
 from src.utils import constants
-
+from tqdm.auto import tqdm
+tqdm.pandas()
 
 class DatasetQuerier(AnalysisUtils):
 
@@ -90,7 +91,7 @@ class DatasetQuerier(AnalysisUtils):
                 lab_vals = lab_vals[lab_vals["LabTimeFromAdmit"].dt.total_seconds()<med2_val["MedTimeFromAdmit"].total_seconds()]
             
             t = lab_vals.groupby(["ITEMID"]).count()[["HADM_ID"]]
-            
+
             val_counts_m = t[t["HADM_ID"]>=1]
             if val_counts_m.shape[0]==0:
                 row[f"after_abs_{a_w}"] = {}
@@ -123,12 +124,12 @@ class DatasetQuerier(AnalysisUtils):
         self.final_pairs_data = []
         self.interim_pairs_data = []
         
-        t_labs =  self.t_labs
-        for i in tqdm.tqdm(range(len(self.meds))):
+        t_labs = self.t_labs
+        for i in tqdm(range(len(self.meds))):
             
-            if i==0 :
+            if i==0:
                 t_med0, t_med1, t_med2 = None, self.meds[i], self.meds[i+1]
-            elif i== len(self.meds)-1:
+            elif len(self.meds)!=2 and i==len(self.meds)-1:
                 t_med0, t_med1, t_med2 = self.meds[i-1], self.meds[i], None
             else:
                 t_med0, t_med1, t_med2 = self.meds[i-1], self.meds[i], self.meds[i+1]
@@ -140,14 +141,14 @@ class DatasetQuerier(AnalysisUtils):
             cols.extend(cols_a)
             temp = t_med1.copy()
 
-            self.interim_pairs_data.append(temp.apply(lambda r : self.get_vals(r, t_labs, t_med0, t_med2, before_windows, after_windows), axis=1))
+            self.interim_pairs_data.append(temp.progress_apply(lambda r : self.get_vals(r, t_labs, t_med0, t_med2, before_windows, after_windows), axis=1))
             self.interim_pairs_data[-1].to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_first_val_{self.stratify_prefix}_doc_eval_new_win_lab{lab_parts}_med({i}, {i+1}).csv"))
             temp = self.interim_pairs_data[-1]
             
             col_vals = []
             for col in cols:
                 col_vals.append(
-                    temp.assign(dict=temp[col].dropna().map(lambda d: d.items())).explode("dict", ignore_index=True).assign(
+                    temp.assign(dict=temp[col].dropna().map(lambda d: json.loads(d.replace("\'", "\"")).items())).explode("dict", ignore_index=True).assign(
                         LAB_ITEMID=lambda df: df.dict.str.get(0),
                         temp=lambda df: df.dict.str.get(1)
                     ).drop(columns=["dict"]+cols).astype({'temp':'float64'}).rename(columns={"temp":f"{col}_sp"}).dropna(subset=["LAB_ITEMID"])
@@ -182,8 +183,10 @@ class DatasetQuerier(AnalysisUtils):
                 
         t_labs =  self.t_labs[self.t_labs[filter_col]==lab]
         n_meds = [med1[med1[filter_col]==med] for med1 in self.meds if med1[med1[filter_col]==med].shape[0]>0]
-        
-        
+
+        t_labs.to_csv(os.path.join(self.res, f't_labs_{lab}.csv'))
+        n_meds[0].to_csv(os.path.join(self.res, f'n_meds0_{med}.csv'))
+
         if n_meds[0].shape[0]==0:
             print(f"No data found for the given medication {med}")
             return
@@ -194,11 +197,11 @@ class DatasetQuerier(AnalysisUtils):
         final_pairs_data = []
         interim_pairs_data = []
         
-        for i in tqdm.tqdm(range(len(n_meds))):
+        for i in tqdm(range(len(n_meds))):
             
             if i==0 :
                 t_med0, t_med1, t_med2 = None, self.meds[i], self.meds[i+1]
-            elif i== len(self.meds)-1:
+            elif len(self.meds)!=2 and i==len(self.meds)-1:
                 t_med0, t_med1, t_med2 = self.meds[i-1], self.meds[i], None
             else:
                 t_med0, t_med1, t_med2 = self.meds[i-1], self.meds[i], self.meds[i+1]
@@ -210,7 +213,7 @@ class DatasetQuerier(AnalysisUtils):
             cols.extend(cols_a)
             temp = t_med1.copy()
 
-            interim_pairs_data.append(temp.apply(lambda r : self.get_vals(r, t_labs, t_med0, t_med2, before_windows, after_windows), axis=1))
+            interim_pairs_data.append(temp.progress_apply(lambda r : self.get_vals(r, t_labs, t_med0, t_med2, before_windows, after_windows), axis=1))
             interim_pairs_data[-1].to_csv(os.path.join(self.res, f"before_after_windows_main_med_lab_first_val_{self.stratify_prefix}_doc_eval_new_win_lab-{lab}_med-{med}({i}, {i+1}).csv"))
             temp = interim_pairs_data[-1]
             
