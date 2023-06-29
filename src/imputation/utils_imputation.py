@@ -163,7 +163,8 @@ def impute_drug_forward(df, drug_forward_params,logfile, features):
             print('Create function for '+lab_name+ '<>'+med_t_name)
 
             # Calculate gam function
-            gam_func_temp =  create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
+            # gam_func_temp =  create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
+            gam_func_temp = create_gum_func_df(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
 
             #impute missing values using gam functions
             df_temp_masked_imputed = drug_forward_imputation(df_drugs.copy(),lab_name,med_t_name,delta_time_before,gam_func_temp,delta_time_after,drug_forward_type)
@@ -172,7 +173,8 @@ def impute_drug_forward(df, drug_forward_params,logfile, features):
             #calculate estimated value per medication
             for med_t_name in df_med.med_label:
                 print('Create function for '+lab_name+ '<>'+med_t_name)
-                gam_func_temp = create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
+                #gam_func_temp = create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
+                gam_func_temp = create_gum_func_df(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
                 df_drugs = drug_forward_imputation(df_drugs,lab_name,med_t_name,delta_time_before,gam_func_temp,delta_time_after,drug_forward_type)
                 df_drugs.to_csv('df_drugs_temp'+med_t_name+'.csv')
 
@@ -398,6 +400,55 @@ def drug_forward_imputation(df,lab_name,med_t_name,delta_time_before,gam_func,de
     return(df)
 
 
+
+def extract_ratio_and_after_time_df(df_drug_lab, min_val, max_val,delta_time_before,delta_time_after):
+    # remove inhuman values
+    df_drug_lab = df_drug_lab[df_drug_lab['after_abs_(0, 4)_sp'] > min_val]
+    df_drug_lab = df_drug_lab[df_drug_lab['before_abs_(0, 6)_sp'] > min_val]
+    df_drug_lab = df_drug_lab[df_drug_lab['after_abs_(0, 4)_sp'] <max_val]
+    df_drug_lab = df_drug_lab[df_drug_lab['before_abs_(0, 6)_sp'] <max_val]
+
+    # take data only according to time windows
+    df_drug_lab = df_drug_lab[df_drug_lab['before_time_(0, 6)_sp'] <= int(delta_time_before[0])]
+    df_drug_lab = df_drug_lab[df_drug_lab['after_time_(0, 4)_sp'] <= int(delta_time_after[0])]
+
+    #calculate ratio
+    df_drug_lab['ratio'] = df_drug_lab['after_abs_(0, 4)_sp']/df_drug_lab['before_abs_(0, 6)_sp']
+    print(df_drug_lab.shape)
+
+    #remove ratio == 1 because of lab_events and chartevents bug
+    df_drug_lab = df_drug_lab[~((df_drug_lab['ratio'] == 1) & (df_drug_lab['after_time_(0, 4)_sp']<=1))]
+
+    #remove rows where one of the values is mising
+    df_drug_lab = df_drug_lab[~df_drug_lab['ratio'].isna()]
+    df_drug_lab = df_drug_lab[~df_drug_lab['ratio'].isna()]
+    print(df_drug_lab.shape)
+
+    #define vectors for GAM calculation
+    x = df_drug_lab['after_time_(0, 4)_sp']
+    y = df_drug_lab['ratio']
+
+    return(x,y)
+def create_gum_func_df(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,final):
+    max_val = float(df_inhuman[df_inhuman.full_name == lab_name]['max_inhuman'].tolist()[0])
+    min_val = float(df_inhuman[df_inhuman.full_name == lab_name]['min_inhuman'].tolist()[0])
+    print(max_val)
+    print(min_val)
+
+    b_w = [(0,6)]
+    a_w = [(0,4)]
+
+    #load_data_
+    med_lab_pair = final[(final.LAB_NAME == lab_name) & (final['MED_NAME'] == med_t_name)]
+    df_drug_lab = med_lab_pair
+    print(df_drug_lab.shape)
+
+    x,y = extract_ratio_and_after_time_df(df_drug_lab, min_val, max_val,delta_time_before,delta_time_after)
+    exp_params, gam_func = exponent_gam_plot(x,y,lab_name,med_t_name)
+    #exp_params = calc_exponent_func
+    #gam_func = calc_gam_func(x,y,lab_name,med_t_name)
+
+    return(gam_func)
 
 def create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier):
     max_val = float(df_inhuman[df_inhuman.full_name == lab_name]['max_inhuman'].tolist()[0])
