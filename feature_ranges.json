@@ -39,6 +39,14 @@
         "min": 1,
         "max": 20000
     },
+    "Bicarbonate": {
+        "min": 4,
+        "max": 70
+    },
+    "Bilirubin": {
+        "min": 0.1,
+        "max": 100
+    },
     "BMI": {
         "min": 10,
         "max": 80
@@ -71,7 +79,10 @@
         "min": 0.1,
         "max": 20
     },
-    "Chloride": {
+    "Calcium ionized": {
+        "min": 0.1,
+        "max": 5
+    },"Chloride": {
         "min": 50,
         "max": 200
     },

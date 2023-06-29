@@ -19,8 +19,6 @@ LAB_MAPPING = {
     'Potassium': [829, 1535, 227464, 50971, 50822],
     'Sodium': [837, 1536, 220645, 226534, 50983, 50824],
     'Uric Acid': [51007],
-    'Amylase': [50867],
-    'Lipase': [50956],
     'PTT': [825, 1533, 227466, 51275],
     'Hematocrit': [813, 220545, 51221, 50810],
     'Red blood cell': [51279, 833],
@@ -43,8 +41,7 @@ LAB_MAPPING = {
     'Temperature (C)': [3655, 677, 676, 223762],
     'Temperature (F)': [678, 223761, 679],
     'Respiratory rate': [618, 220210, 3603, 224689, 614, 651, 224422, 615, 224690, 619, 224688],
-    'Pulse oximetry': [646, 220277],
-    'Oxygen saturation': [834, 50817, 8498, 220227]
+    'Oxygen saturation': [834, 50817, 8498, 220227, 646]
 }
 
 OLD_LAB_MAPPING = {

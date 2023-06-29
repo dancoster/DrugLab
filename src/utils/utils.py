@@ -5,7 +5,7 @@ import seaborn as sns
 import pandas as pd
 import os
 from sklearn import linear_model
-
+import json
 from src.utils import constants
 
 # Util Functions
@@ -366,3 +366,27 @@ def inhuman_statistics(df, features, ranges, nones_before, sizes, pts_before=Non
 
     return(stats)
 
+
+def convert_units_features(m_labs):
+    df = m_labs.copy()
+    #convert Farnhiet to Celsius and change ITEMID name
+    df[(df.ITEMID == 'Temperature (F)')]['VALUENUM'] = (df[(df.ITEMID == 'Temperature (F)')]['VALUENUM'] - 32)*(5/9)
+    df[(df.ITEMID == 'Temperature (F)')]['ITEMID'] ='Temperature (C)'
+
+    return(df)
+
+def remove_and_count_inhuman_values(m_labs):
+    path_for_ranges = 'feature_ranges.json' # json of inhuman values
+    pivoted_data = False # row per each value of clinical measures
+    feature_col_name = 'ITEMID'
+    df_name = 'mimic_inhuman' #file name
+    df = m_labs
+
+    #rename cols to fit 'remove_inhuman_values' function
+    df = df.rename(columns={"VALUENUM": "Value", "HADM_ID":"Patient ID"})
+    df_in = remove_inhuman_values(df, path_for_ranges, pivoted_data=False, feature_col_name='ITEMID', df_name= "merged")
+
+    #change cols to oringinal names
+    df_in = df_in.rename(columns={"Value":"VALUENUM","Patient ID":"HADM_ID"})
+
+    return df_in
