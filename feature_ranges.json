@@ -1,0 +1,466 @@
+{
+    "A1C": {
+        "min": 0,
+        "max": 240
+    },
+    "A1C_A": {
+        "min": 0,
+        "max": 240
+    },
+    "A1C_V": {
+        "min": 0,
+        "max": 240
+    },
+    "A1CB": {
+        "min": 0,
+        "max": 24
+    },
+    "A1CB_A": {
+        "min": 0,
+        "max": 24
+    },
+    "A1CB_V": {
+        "min": 0,
+        "max": 24
+    },
+    "Age": {
+        "min": 0,
+        "max": 120
+    },
+    "Albumin": {
+        "min": 0.1,
+        "max": 100
+    },
+    "Alanine aminotransferase": {
+        "min": 1,
+        "max": 20000
+    },
+    "Asparate aminotransferase": {
+        "min": 1,
+        "max": 20000
+    },
+    "BMI": {
+        "min": 10,
+        "max": 80
+    },
+    "BNP": {
+        "min": 0.1,
+        "max": 10000
+    },
+    "BNP_A": {
+        "min": 0.1,
+        "max": 10000
+    },
+    "BNP_V": {
+        "min": 0.1,
+        "max": 10000
+    },
+    "BP": {
+        "min": 30,
+        "max": 245
+    },
+    "BRE": {
+        "min": 5,
+        "max": 100
+    },
+    "Blood urea nitrogen": {
+        "min": 2,
+        "max": 200
+    },
+    "Calcium": {
+        "min": 0.1,
+        "max": 20
+    },
+    "Chloride": {
+        "min": 50,
+        "max": 200
+    },
+    "CKMB": {
+        "min": 0,
+        "max": 100000
+    },
+    "CKMB_A": {
+        "min": 0,
+        "max": 100000
+    },
+    "CKMB_V": {
+        "min": 0,
+        "max": 100000
+    },
+    "CO2t": {
+        "min": 0.1,
+        "max": 100
+    },
+    "CO2t_A": {
+        "min": 0.1,
+        "max": 100
+    },
+    "CO2t_V": {
+        "min": 0.1,
+        "max": 100
+    },
+    "CPK": {
+        "min": 0,
+        "max": 100000
+    },
+    "CPK_A": {
+        "min": 0,
+        "max": 100000
+    },
+    "CPK_V": {
+        "min": 0,
+        "max": 100000
+    },
+    "CRP": {
+        "min": 0,
+        "max": 1000
+    },
+    "CRP_A": {
+        "min": 0,
+        "max": 1000
+    },
+    "CRP_V": {
+        "min": 0,
+        "max": 1000
+    },
+    "Creatinine": {
+        "min": 0.1,
+        "max": 15
+    },
+    "DBIL": {
+        "min": 0,
+        "max": 20
+    },
+    "DBIL_A": {
+        "min": 0,
+        "max": 20
+    },
+    "DBIL_V": {
+        "min": 0,
+        "max": 20
+    },
+    "Diastolic blood pressure": {
+        "min": 20,
+        "max": 240
+    },
+    "DDM": {
+        "min": 0.1,
+        "max": 50
+    },
+    "DDM_A": {
+        "min": 0.1,
+        "max": 50
+    },
+    "DDM_V": {
+        "min": 0.1,
+        "max": 50
+    },
+    "FER": {
+        "min": 0.1,
+        "max": 20000
+    },
+    "FER_A": {
+        "min": 0.1,
+        "max": 20000
+    },
+    "FER_V": {
+        "min": 0.1,
+        "max": 20000
+    },
+    "FIB": {
+        "min": 10,
+        "max": 1500
+    },
+    "FIB_A": {
+        "min": 10,
+        "max": 1500
+    },
+    "FIB_V": {
+        "min": 10,
+        "max": 1500
+    },
+    "FIO2": {
+        "min": 20,
+        "max": 100
+    },
+    "Glucose": {
+        "min": 15,
+        "max": 2000
+    },
+    "HCO3": {
+        "min": 1,
+        "max": 100
+    },
+    "Hematocrit": {
+        "min": 7,
+        "max": 80
+    },
+    "HCO3_A": {
+        "min": 1,
+        "max": 100
+    },
+    "HCO3_V": {
+        "min": 1,
+        "max": 100
+    },
+    "Hemoglobin": {
+        "min": 2,
+        "max": 25
+    },
+    "IDBIL": {
+        "min": 0,
+        "max": 20
+    },
+    "IDBIL_A": {
+        "min": 0,
+        "max": 20
+    },
+    "IDBIL_V": {
+        "min": 0,
+        "max": 20
+    },
+    "Prothrombin time INR": {
+        "min": 0.5,
+        "max": 10
+    },
+    "Lactic acid": {
+        "min": 0.2,
+        "max": 15
+    },
+    "Lactate dehydrogenase": {
+        "min": 0.1,
+        "max": 20000
+    },
+    "LYM(#)": {
+        "min": 0,
+        "max": 40
+    },
+    "LYM(#)_A": {
+        "min": 0,
+        "max": 40
+    },
+    "LYM(#)_V": {
+        "min": 0,
+        "max": 40
+    },
+    "Lymphocytes": {
+        "min": 0.1,
+        "max": 100
+    },
+    "Magnesium": {
+        "min": 0.5,
+        "max": 4
+    },
+    "NEU(#)": {
+        "min": 0.1,
+        "max": 60
+    },
+    "NEU(#)_A": {
+        "min": 0.1,
+        "max": 60
+    },
+    "NEU(#)_V": {
+        "min": 0.1,
+        "max": 60
+    },
+    "Neutrophils": {
+        "min": 0.1,
+        "max": 100
+    },
+    "NRBC(%)": {
+        "min": 0,
+        "max": 100
+    },
+    "NRBC(%)_A": {
+        "min": 0,
+        "max": 100
+    },
+    "NRBC(%)_V": {
+        "min": 0,
+        "max": 100
+    },
+    "Mean corpuscular volume": {
+        "min": 40,
+        "max": 150
+    },
+    "OS": {
+        "min": 50,
+        "max": 500
+    },
+    "OS_A": {
+        "min": 50,
+        "max": 500
+    },
+    "OS_U": {
+        "min": 50,
+        "max": 2000
+    },
+    "OS_V": {
+        "min": 50,
+        "max": 500
+    },
+    "PCO2": {
+        "min": 0.1,
+        "max": 150
+    },
+    "PCO2_A": {
+        "min": 0.1,
+        "max": 150
+    },
+    "PCO2_V": {
+        "min": 0.1,
+        "max": 150
+    },
+    "PEEP": {
+        "min": 0,
+        "max": 20
+    },
+    "PH": {
+        "min": 6.6,
+        "max": 7.8
+    },
+    "PH_A": {
+        "min": 6.6,
+        "max": 7.8
+    },
+    "PH_V": {
+        "min": 6.6,
+        "max": 7.8
+    },
+    "Platelets": {
+        "min": 0.1,
+        "max": 2000
+    },
+    "PO2": {
+        "min": 0,
+        "max": 1000
+    },
+    "PO2_A": {
+        "min": 0,
+        "max": 1000
+    },
+    "PO2_V": {
+        "min": 0,
+        "max": 1000
+    },
+    "Potassium": {
+        "min": 1,
+        "max": 10
+    },
+    "PTSec": {
+        "min": 5,
+        "max": 50
+    },
+    "PTSec_A": {
+        "min": 5,
+        "max": 50
+    },
+    "PTSec_V": {
+        "min": 5,
+        "max": 50
+    },
+    "PTT": {
+        "min": 5,
+        "max": 200
+    },
+    "Heart Rate": {
+        "min": 10,
+        "max": 300
+    },
+    "Red blood cell": {
+        "min": 1,
+        "max": 10
+    },
+    "RDW": {
+        "min": 5,
+        "max": 50
+    },
+    "RDW_A": {
+        "min": 5,
+        "max": 50
+    },
+    "RDW_V": {
+        "min": 5,
+        "max": 50
+    },
+    "RRM": {
+        "min": 1,
+        "max": 30
+    },
+    "Respiratory rate": {
+        "min": 1,
+        "max": 200
+    },
+    "Systolic blood pressure": {
+        "min": 20,
+        "max": 250
+    },
+    "Sodium": {
+        "min": 100,
+        "max": 200
+    },
+    "SPO2R": {
+        "min": 5,
+        "max": 100
+    },
+    "Oxygen saturation": {
+        "min": 5,
+        "max": 100
+    },
+    "TBIL": {
+        "min": 0,
+        "max": 20
+    },
+    "TBIL_A": {
+        "min": 0,
+        "max": 20
+    },
+    "TBIL_V": {
+        "min": 0,
+        "max": 20
+    },
+    "Temperature (C)": {
+        "min": 20,
+        "max": 45
+    },
+    "TRG": {
+        "min": 10,
+        "max": 2000
+    },
+    "TRG_A": {
+        "min": 10,
+        "max": 2000
+    },
+    "TRG_V": {
+        "min": 10,
+        "max": 2000
+    },
+    "TRP": {
+        "min": 1,
+        "max": 40000
+    },
+    "TRP_A": {
+        "min": 1,
+        "max": 40000
+    },
+    "TRP_V": {
+        "min": 1,
+        "max": 40000
+    },
+    "Uric Acid": {
+        "min": 0.1,
+        "max": 30
+    },
+    "Vitamin B12": {
+        "min": 10,
+        "max": 2500
+    },
+    "White blood cell count": {
+        "min": 0.2,
+        "max": 150
+    },
+    "WEI": {
+        "min": 20,
+        "max": 250
+    }
+}
