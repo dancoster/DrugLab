@@ -21,7 +21,12 @@ class HiRiDParser(AnalysisUtils):
     def load_med(self):
 
         pharma_records_paths = [i for iq, i in enumerate(os.walk(os.path.join(self.data, "pharma_records"))) if iq==1][0][2]
-        pharma_records = pd.concat([pd.read_csv(os.path.join(self.data, "pharma_records", 'csv', file)) for file in pharma_records_paths])
+        df = pd.read_csv(os.path.join(self.data, "pharma_records", 'csv', pharma_records_paths[0]))
+        for file in pharma_records_paths[1:]:
+                temp_df = pd.read_csv(os.path.join(self.data, "pharma_records", 'csv', file))
+                df = pd.concat([df,temp_df])
+                del temp_df
+        #pharma_records = pd.concat([pd.read_csv(os.path.join(self.data, "pharma_records", 'csv', file)) for file in pharma_records_paths])
         pharma_records = pharma_records.rename(columns={"pharmaid":"variableid"})
 
         pharma_records_with_name = pd.merge(pharma_records, self.h_var_ref, on="variableid", how="inner")
