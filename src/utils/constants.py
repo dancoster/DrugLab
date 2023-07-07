@@ -366,3 +366,68 @@ HIRID_MIMIC_FEATURE_MAPPING = {
     'Sodium [Moles/volume] in Blood': 'Sodium', 
     'Systolic arterial pressure': 'Systolic blood pressure'
 }
+
+EXTRACT_COLS = ['hadm_id', 'age', 'GENDER', 'Albumin', 'Bicarbonate', 'Calcium',
+    'Chloride', 'Temperature', 'Creatinine', 'Diastolic blood pressure',
+    'Glucose', 'Heart Rate', 'Hemoglobin', 'Prothrombin time INR',
+    'Lactic acid', 'Lymphocytes', 'Magnesium', 'Neutrophils',
+    'Oxygen saturation', 'Platelets', 'Potassium', 'Respiratory rate',
+    'Sodium', 'Systolic blood pressure', 'ADMITTIME', 'DISCHTIME', 'charttime',
+    'LABEL_48', 'Mortality', 'LOS']
+
+IN_HIRID_NOT_MIMIC_COLS = [
+    'Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma',
+    'Amylase [Enzymatic activity/volume] in Serum or Plasma',
+    'Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma',
+    'Bilirubin.direct [Mass/volume] in Serum or Plasma',
+    'Bilirubin.total [Moles/volume] in Serum or Plasma',
+    'Calcium.ionized [Moles/volume] in Blood',
+    'Carboxyhemoglobin/Hemoglobin.total in Arterial blood',
+    'Methemoglobin/Hemoglobin.total in Arterial blood',
+    'Pulmonary artery diastolic pressure',
+    'Pulmonary artery systolic pressure', 'DATE', 'HOUR', 'discharge_status'
+]
+
+IN_MIMIC_NOT_HIRID_COLS = ['Blood urea nitrogen',
+    'DEATHTIME',
+    'ETHNICITY',
+    'Hematocrit',
+    'Lactate dehydrogenase',
+    'Mean corpuscular volume',
+    'Red blood cell',
+    'White blood cell count',
+    'icustay_id',
+    'subject_id']
+
+
+lab_cols = ['Albumin', 'Bicarbonate', 'Calcium',
+    'Chloride', 'Temperature', 'Creatinine', 'Diastolic blood pressure',
+    'Glucose', 'Heart Rate', 'Hemoglobin', 'Prothrombin time INR',
+    'Lactic acid', 'Lymphocytes', 'Magnesium', 'Neutrophils',
+    'Oxygen saturation', 'Platelets', 'Potassium', 'Respiratory rate',
+    'Sodium', 'Systolic blood pressure']
+num_cols = ['hadm_id',
+'age',
+'Albumin',
+'Bicarbonate',
+'Calcium',
+'Chloride',
+'Temperature',
+'Creatinine',
+'Diastolic blood pressure',
+'Glucose',
+'Heart Rate',
+'Hemoglobin',
+'Prothrombin time INR',
+'Lactic acid',
+'Lymphocytes',
+'Magnesium',
+'Neutrophils',
+'Oxygen saturation',
+'Platelets',
+'Potassium',
+'Respiratory rate',
+'Sodium',
+'Systolic blood pressure',
+'LABEL_48',
+'Mortality']
