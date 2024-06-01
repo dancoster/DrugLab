@@ -71,7 +71,7 @@ class MIMICParser(AnalysisUtils):
         m_p_df = m_p_df[m_p_df["AGE"]>=self.age_b]
         m_p_df = m_p_df[m_p_df["AGE"]<=self.age_a]
         m_p_df = m_p_df[m_p_df["GENDER"]==self.gender] if self.gender != "MF" else m_p_df
-        m_p_df = m_p_df[m_p_df["ETHNICITY"]==self.ethnicity]
+        m_p_df = m_p_df[m_p_df["ETHNICITY"]==self.ethnicity] if self.ethnicity != "ALL" else m_p_df
         
         return m_p_df
 
@@ -128,7 +128,7 @@ class MIMICParser(AnalysisUtils):
         admits = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "ADMISSIONS.csv.gz"))
         patients = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "PATIENTS.csv.gz"))
 
-        ### Final Mapping (from the above "lab_itemids" dictionary, ie, output of manual mapping from mimic extract) in the required format
+        #### Final Mapping (from the above "lab_itemids" dictionary, ie, output of manual mapping from mimic extract) in the required format
         final_mapping_lab_itemids = {v2:k for k, v in self.lab_mapping.items() for v2 in v}
         final_itemids_list = list(final_mapping_lab_itemids.keys())
         
@@ -136,12 +136,10 @@ class MIMICParser(AnalysisUtils):
         print("Generate lab data from labevents...")
         if use_partitioned_files:
             labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
-            if lab is not None:
-                labevents = labevents[labevents["MIMICExtractName"]==lab]
         else:
             labevents = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "LABEVENTS.csv.gz"))
 
-            # ### Preprocessing labevents data to add requried features like "MIMIC Extract Names" and "age at admit time"
+            #### Preprocessing labevents data to add requried features like "MIMIC Extract Names" and "age at admit time"
             labevents = labevents[labevents.ITEMID.isin(final_itemids_list)]
             labevents["MIMICExtractName"] = labevents.apply(lambda r: final_mapping_lab_itemids[r["ITEMID"]], axis=1)
             labevents["TABLE"] = labevents.apply(lambda r: "LABEVENTS", axis=1)
@@ -157,14 +155,18 @@ class MIMICParser(AnalysisUtils):
             columns = constants.LAB_VECT_COLS
             columns.extend(['ROW_ID_x', 'TABLE'])
             labevents[columns].to_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_LABEVENT_PREPROCESSED))
-        print("Generated lab data from labevents.") 
+
+        if lab is not None:
+            labevents = labevents[labevents["MIMICExtractName"]==lab]
+
+        print("Generated lab data from labevents.")
         
         print("Generate lab data from chartevents...")
         ## Chartevents
         ### Reading chartevents data in chunks and saving the output CSV files for each chunck (batch processing). 
         ### The output of each chunk (csv file) is later concatenated and stored.
         if use_partitioned_files:
-            if lab is not None:
+            if lab_parts is not None:
                 res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(0, constants.CHARTEVENT_PARTS)]
             else:
                 res_paths = [os.path.join(self.data, "mimiciii", "1.4","preprocessed", "CHARTEVENTS", f"chartevents_with_mimic_extract_{count}.csv.gz") for count in range(lab_parts[0], lab_parts[1])]
@@ -218,7 +220,8 @@ class MIMICParser(AnalysisUtils):
         t_lab = labevents[constants.LAB_VECT_COLS]
         merged_chart_lab_events = pd.concat([t_lab, t_chart]).drop_duplicates(keep="first") # Concatenate labevents and chartevents data. Choose only the first if there are duplicates
         del t_lab, t_chart
-        
+
+        print(merged_chart_lab_events.shape)
         ## Sanity check on calculated age (removing inhumane age values)
         merged_chart_lab_events = merged_chart_lab_events[merged_chart_lab_events["AGE"]<100]
         merged_chart_lab_events = merged_chart_lab_events[merged_chart_lab_events["AGE"]>0]
@@ -242,14 +245,15 @@ class MIMICParser(AnalysisUtils):
         else:
             bool_val = not load_raw_chartevents
             labs = self.generate_lab_vect(use_partitioned_files=bool_val, lab_parts=lab_parts, lab=lab)
-        
+
         labs = labs[labs.HADM_ID.isin(h_med_adm1)]
-        
+        print(labs.shape)
+
         # Stratification
         labs = labs[labs["AGE"]>=self.age_b]
         labs = labs[labs["AGE"]<=self.age_a]
         labs = labs[labs["GENDER"]==self.gender] if self.gender != "MF" else labs
-        labs = labs[labs["ETHNICITY"]==self.ethnicity]
+        labs = labs[labs["ETHNICITY"]==self.ethnicity] if self.ethnicity != "ALL" else labs
         
         # Adding other column variables
         labs["CHARTTIME"] = pd.to_datetime(labs["CHARTTIME"])
@@ -264,8 +268,8 @@ class MIMICParser(AnalysisUtils):
         
         Args:
             use_pairs (bool, optional): _description_. Defaults to True.
-            load_from_raw (bool, optional): Load preprocessed med files from raw MIMIC tables instead of using the previosu prepocessed files. Defaults to True.
-
+            load_from_raw (bool, optional): Load preprocessed med files from raw MIMIC tables instead of using the previous preprocessed files. Defaults to True.
+            lab_parts: Load subset of the chartevents file. Relveant only if load_raw_chartevents == False.
         Returns:
             pd.DataFrame: 1st medication data
             pd.DataFrame: 2nd medication data
@@ -316,6 +320,7 @@ class MIMICParser(AnalysisUtils):
             
             print(f"Load Lab data...")
             labs = self.load_lab(hadm1, load_from_raw=load_from_raw, load_raw_chartevents=load_raw_chartevents, lab_parts=lab_parts, lab=lab)
+            print(labs.shape)
             t_labs = labs.copy()
             if use_pairs:
                 med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()

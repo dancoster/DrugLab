@@ -4,7 +4,8 @@ from matplotlib.patches import Rectangle
 import seaborn as sns
 import pandas as pd
 import os
-
+from sklearn import linear_model
+import json
 from src.utils import constants
 
 # Util Functions
@@ -124,7 +125,7 @@ def check_med2(row):
 def get_med2(row):
     temp = t_med2[t_med2["HADM_ID"]==row["HADM_ID"]] 
     return temp[temp["ITEMID"]==row["ITEMID"]].iloc[0]
-from sklearn import datasets, linear_model, metrics
+
 
 def get_normalized_trend(data):
     selected = data[['VALUENUM', 'hours_from_med']]
@@ -230,3 +231,213 @@ class AnalysisUtils:
         med_vals = [k[0] for k in constants.MIMIC_III_MED_LAB_PAIRS]
         labtest_vals = [k[1] for k in constants.MIMIC_III_MED_LAB_PAIRS]
         return med_vals, labtest_vals
+
+def countna(df, features, pivoted_data=True, feature_col_name=None, count_patients=False):
+    """ Counts null values per feature in features.
+        If df is not pivoted, the function can also count how many patients had null values per feature.
+    """
+    if count_patients and not pivoted_data:
+        df = df[df["Value"].isna()]
+        df = df.groupby([feature_col_name])["Patient ID"].nunique()
+
+    else:
+        if pivoted_data:
+            df = df[features].isnull().sum()
+
+        else:
+            df["Value"] = df["Value"].isnull().astype(int)
+            df = df.groupby([feature_col_name])["Value"].sum()
+
+    df = pd.DataFrame(df)
+
+    return df
+
+def count_size(df, features, pivoted_data=True, feature_col_name=None, count_patients=False):
+    """ Counts non-null values per feature in features.
+        If df is not pivoted, the function can also count how many patients had values per feature.
+    """
+
+    # Count patients
+    if count_patients:
+        if pivoted_data:
+            df = df[features].mask(df[features].isna(), df["Patient ID"], axis=1)
+            df = df[features].nunique()
+
+        else:
+            df = df[df["Value"].notna()]
+            df = df.groupby([feature_col_name])["Patient ID"].nunique()
+
+
+    # Count values
+    else:
+        if pivoted_data:
+            df = df[features].notna().sum()
+
+        else:
+            df["Value"] = df["Value"].notna().astype(int)
+            df = df.groupby([feature_col_name])["Value"].sum()
+
+    df = pd.DataFrame(df)
+    return df
+
+
+def remove_inhuman_values(df, path_for_ranges, pivoted_data=True, feature_col_name=None, df_name= "merged"):
+    """ Masks values that exceed the possible known range.
+        Works on data both before and after pivot, by pivoted_data flag.
+        'feature_col_name' is the name of the features column in the non-pivoted format.
+    """
+    with open(path_for_ranges) as json_ranges:
+        ranges = json.load(json_ranges)
+
+    features, missing_features = [], []
+    unique_features = df.columns if pivoted_data else df[feature_col_name].unique()
+    for x in unique_features:
+        features.append(x) if x in ranges.keys() else missing_features.append(x)
+
+    # Count nulls for statistics
+    val_sizes = count_size(df.copy(), features, pivoted_data, feature_col_name)
+    patients_sizes = count_size(df.copy(), features, pivoted_data, feature_col_name, count_patients=True)
+    sizes = (val_sizes, patients_sizes)
+    nones_before = countna(df.copy(), features, pivoted_data, feature_col_name)
+    if not pivoted_data:
+        pts_before = countna(df.copy(), features, pivoted_data, feature_col_name, count_patients=True)
+
+    if pivoted_data:
+        df[features] = df[features].apply(lambda c: c.mask(~c.between(ranges[c.name]['min'], ranges[c.name]['max'])))
+    else:
+        for feature in features:
+            mask_cond = (df[feature_col_name] == feature) & \
+                        (~df["Value"].between(ranges[feature]['min'], ranges[feature]['max']))
+            df["Value"] = df.mask(mask_cond)["Value"]
+
+    if missing_features:
+        print(f"The following features don't have ranges in the ranges path specified, "
+              f"and therefore ignored:\n{missing_features}")
+
+    if pivoted_data:
+        inhuman_statistics(df, features, ranges, nones_before, sizes, None, pivoted_data, feature_col_name,
+                           df_name=df_name)
+    else:
+        inhuman_statistics(df, features, ranges, nones_before, sizes, pts_before, pivoted_data,
+                           feature_col_name, df_name=df_name)
+
+    return df
+
+def inhuman_statistics(df, features, ranges, nones_before, sizes, pts_before=None, pivoted_data=True,
+                       feature_col_name=None, df_name= "merged"):
+    """ Displays percentage of inhuman values that were removed.
+        If non-pivoted, also shows percentage of patients.
+    """
+    # N, Patients, min human range, max human range
+    stats = pd.merge(sizes[0], sizes[1],left_index=True, right_index=True, how="outer")
+    stats.columns = ["N", "Patients"]
+    stats = pd.merge(stats, pd.DataFrame.from_dict(ranges).T, how="outer", right_index=True, left_index=True)
+
+    # Inhuman removed
+    nones_after = countna(df.copy(), features, pivoted_data, feature_col_name)
+    removed_values = pd.merge(pd.merge(nones_after, nones_before, left_index=True, right_index=True), sizes[0], left_index=True, right_index=True)
+
+    if pivoted_data:
+        removed_values = 100 * (removed_values["0_x"] - removed_values["0_y"]) / removed_values[0]
+    else:
+        removed_values = 100 * (removed_values["Value_x"] - removed_values["Value_y"])/ removed_values["Value"]
+
+    removed_values = removed_values[removed_values != 0].rename("Inhuman Values(%)")
+    stats = pd.merge(stats, removed_values, left_index=True, right_index=True, how="left")
+
+    # Patients with removed
+    if not pivoted_data:
+        pts_after = countna(df.copy(), features, pivoted_data, feature_col_name, count_patients=True)
+        if pts_before.sum().sum():
+            patients_with_removed = 100 * (pts_after.iloc[:,0] - pts_before.iloc[:,0])/(sizes[1].iloc[:,0])
+        else:
+            patients_with_removed = 100 * pts_after.iloc[:,0] /(sizes[1].iloc[:,0])
+        stats = pd.merge(stats, patients_with_removed, how="left", left_index=True, right_index=True)
+
+    if pivoted_data:
+        print(f"In total, {(nones_after.sum() - nones_before.sum()).sum()} invalid values were removed:")
+    else:
+        pts_with_nones = df[df["Value"].isna()]["Patient ID"].unique()
+        print(f"In total, {(nones_after.sum() - nones_before.sum()).sum()} invalid values from {len(pts_with_nones)} patients were removed:")
+
+    stats = pd.DataFrame(stats.round(3))
+    stats.to_csv(os.path.join(f"inhuman_statistics_{df_name}.csv"))
+    stats = stats.dropna(how="any")
+
+    return(stats)
+
+
+def convert_units_features(m_labs):
+    df = m_labs.copy()
+    #convert Farnhiet to Celsius and change ITEMID name
+    df.loc[(df.ITEMID == 'Temperature (F)'),'VALUENUM'] = (df.loc[(df.ITEMID == 'Temperature (F)'),'VALUENUM']- 32)*(5/9)
+    df.loc[(df.ITEMID == 'Temperature (F)'),'ITEMID'] ='Temperature (C)'
+
+    return(df)
+
+def remove_and_count_inhuman_values(m_labs):
+    path_for_ranges = 'feature_ranges.json' # json of inhuman values
+    pivoted_data = False # row per each value of clinical measures
+    feature_col_name = 'ITEMID'
+    df_name = 'mimic_inhuman' #file name
+    df = m_labs
+
+    #rename cols to fit 'remove_inhuman_values' function
+    df = df.rename(columns={"VALUENUM": "Value", "HADM_ID":"Patient ID"})
+    df_in = remove_inhuman_values(df, path_for_ranges, pivoted_data=False, feature_col_name='ITEMID', df_name= "merged")
+
+    #change cols to oringinal names
+    df_in = df_in.rename(columns={"Value":"VALUENUM","Patient ID":"HADM_ID"})
+
+    return df_in
+
+def fix_one_hour_bug(m_labs):
+    vitals_labs = m_labs
+    values_before = vitals_labs.shape[0]
+    # remove 'ROW_ID_x', 'ROW_ID_x.1', 'TABLE', 'TABLE.1',
+
+    # change index to CHARTTIME
+    vitals_labs['CHARTTIME'] = pd.to_datetime(vitals_labs['CHARTTIME'])
+    vitals_labs = vitals_labs.set_index('CHARTTIME')
+
+    # create a copy of the data with an hour offset
+    vitals_labs_offset = vitals_labs.shift(periods=1, freq='h')
+
+    # each of the data set offset = 0 -> time = original time, offset = 1 -> time = original time + 1
+    vitals_labs['offset'] = 0
+    vitals_labs_offset['offset'] = 1
+
+    # concat the datasets
+    vitals_labs_all = pd.concat([vitals_labs, vitals_labs_offset])
+
+    # remove duplicates at the same time in successive hours (different offset)
+    vitals_labs_all.reset_index(inplace=True)
+    vitals_labs_all_drop = vitals_labs_all.drop_duplicates(subset=['SUBJECT_ID','CHARTTIME' ,'HADM_ID', 'ITEMID', 'VALUE', 'offset'])
+
+    # detect duplicates from different offset
+    dup_vitals_labs = vitals_labs_all_drop[vitals_labs_all_drop.duplicated(keep=False, subset=[
+        'SUBJECT_ID','CHARTTIME' ,'HADM_ID', 'ITEMID', 'VALUE'])]
+
+    #take only subset of measureements with duplicates from CHARTEVENTS and LABEVENTS
+    mutual_tables = pd.DataFrame(dup_vitals_labs.groupby(['ITEMID'])['TABLE'].nunique() == 1).reset_index()
+    mutual_tables_features = mutual_tables[mutual_tables.TABLE == False]['ITEMID']
+    dup_labs = dup_vitals_labs[dup_vitals_labs.ITEMID.isin(mutual_tables_features)].sort_values(by=['HADM_ID', 'ITEMID', 'VALUE','offset'])
+
+    # Take only subset of offset 1
+    vitals_labs_all_1 = vitals_labs_all[vitals_labs_all.offset == 1]
+
+    # Remove duplicates IDs
+    vitals_labs_all_1 = vitals_labs_all_1[~vitals_labs_all_1.index.isin(dup_labs.index)]
+
+    # Remove one hour before
+    vitals_labs_all_1 = vitals_labs_all_1.set_index('CHARTTIME').shift(periods=-1, freq='h')
+
+    # set chart time as cokumon insteat of index
+    vitals_labs_all_1['CHARTTIME'] = vitals_labs_all_1.index
+    vitals_labs_all_1 = vitals_labs_all_1.reset_index(drop=True).drop(columns=['offset'])
+
+    values_after = vitals_labs_all_1.shape[0]
+
+    print(f"Before removing duplicates {values_before} and after removal {values_after}, total of {values_before - values_after} were removed.")
+
+    return vitals_labs_all_1
