@@ -370,8 +370,8 @@ def inhuman_statistics(df, features, ranges, nones_before, sizes, pts_before=Non
 def convert_units_features(m_labs):
     df = m_labs.copy()
     #convert Farnhiet to Celsius and change ITEMID name
-    df[(df.ITEMID == 'Temperature (F)')]['VALUENUM'] = (df[(df.ITEMID == 'Temperature (F)')]['VALUENUM'] - 32)*(5/9)
-    df[(df.ITEMID == 'Temperature (F)')]['ITEMID'] ='Temperature (C)'
+    df.loc[(df.ITEMID == 'Temperature (F)'),'VALUENUM'] = (df.loc[(df.ITEMID == 'Temperature (F)'),'VALUENUM']- 32)*(5/9)
+    df.loc[(df.ITEMID == 'Temperature (F)'),'ITEMID'] ='Temperature (C)'
 
     return(df)
 
@@ -390,3 +390,54 @@ def remove_and_count_inhuman_values(m_labs):
     df_in = df_in.rename(columns={"Value":"VALUENUM","Patient ID":"HADM_ID"})
 
     return df_in
+
+def fix_one_hour_bug(m_labs):
+    vitals_labs = m_labs
+    values_before = vitals_labs.shape[0]
+    # remove 'ROW_ID_x', 'ROW_ID_x.1', 'TABLE', 'TABLE.1',
+
+    # change index to CHARTTIME
+    vitals_labs['CHARTTIME'] = pd.to_datetime(vitals_labs['CHARTTIME'])
+    vitals_labs = vitals_labs.set_index('CHARTTIME')
+
+    # create a copy of the data with an hour offset
+    vitals_labs_offset = vitals_labs.shift(periods=1, freq='h')
+
+    # each of the data set offset = 0 -> time = original time, offset = 1 -> time = original time + 1
+    vitals_labs['offset'] = 0
+    vitals_labs_offset['offset'] = 1
+
+    # concat the datasets
+    vitals_labs_all = pd.concat([vitals_labs, vitals_labs_offset])
+
+    # remove duplicates at the same time in successive hours (different offset)
+    vitals_labs_all.reset_index(inplace=True)
+    vitals_labs_all_drop = vitals_labs_all.drop_duplicates(subset=['SUBJECT_ID','CHARTTIME' ,'HADM_ID', 'ITEMID', 'VALUE', 'offset'])
+
+    # detect duplicates from different offset
+    dup_vitals_labs = vitals_labs_all_drop[vitals_labs_all_drop.duplicated(keep=False, subset=[
+        'SUBJECT_ID','CHARTTIME' ,'HADM_ID', 'ITEMID', 'VALUE'])]
+
+    #take only subset of measureements with duplicates from CHARTEVENTS and LABEVENTS
+    mutual_tables = pd.DataFrame(dup_vitals_labs.groupby(['ITEMID'])['TABLE'].nunique() == 1).reset_index()
+    mutual_tables_features = mutual_tables[mutual_tables.TABLE == False]['ITEMID']
+    dup_labs = dup_vitals_labs[dup_vitals_labs.ITEMID.isin(mutual_tables_features)].sort_values(by=['HADM_ID', 'ITEMID', 'VALUE','offset'])
+
+    # Take only subset of offset 1
+    vitals_labs_all_1 = vitals_labs_all[vitals_labs_all.offset == 1]
+
+    # Remove duplicates IDs
+    vitals_labs_all_1 = vitals_labs_all_1[~vitals_labs_all_1.index.isin(dup_labs.index)]
+
+    # Remove one hour before
+    vitals_labs_all_1 = vitals_labs_all_1.set_index('CHARTTIME').shift(periods=-1, freq='h')
+
+    # set chart time as cokumon insteat of index
+    vitals_labs_all_1['CHARTTIME'] = vitals_labs_all_1.index
+    vitals_labs_all_1 = vitals_labs_all_1.reset_index(drop=True).drop(columns=['offset'])
+
+    values_after = vitals_labs_all_1.shape[0]
+
+    print(f"Before removing duplicates {values_before} and after removal {values_after}, total of {values_before - values_after} were removed.")
+
+    return vitals_labs_all_1

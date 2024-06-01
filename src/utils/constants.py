@@ -4,7 +4,6 @@ ID_COL = "OldITEMID"
 # MIMIC Dataset constants
 LAB_MAPPING = {
     'Alanine aminotransferase': [50861, 769, 220644],
-    'Fraction inspired oxygen': [189],
     'Asparate aminotransferase': [50878, 770, 220587],
     'Hemoglobin': [814, 220228, 51222, 50811],
     'Prothrombin time INR': [51237, 815, 1530, 227467],

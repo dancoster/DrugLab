@@ -1,11 +1,14 @@
 import pandas as pd
 import os
-from tqdm import tqdm
+import numpy as np
+#from tqdm import tqdm
 import json
 from src.utils.utils import AnalysisUtils, get_normalized_trend
 from src.utils import constants
-from tqdm.auto import tqdm
-tqdm.pandas()
+#from tqdm.auto import tqdm
+#from tqdm.notebook import tqdm
+from tqdm.autonotebook import tqdm
+tqdm.pandas(mininterval=60) #miniters= 100
 
 class DatasetQuerier(AnalysisUtils):
 
@@ -125,14 +128,18 @@ class DatasetQuerier(AnalysisUtils):
         self.interim_pairs_data = []
         
         t_labs = self.t_labs
-        for i in tqdm(range(len(self.meds))):
+        #handlw with edge case of only 2 first medications
+        for i in range(len(self.meds)):
             
             if i==0:
                 t_med0, t_med1, t_med2 = None, self.meds[i], self.meds[i+1]
             elif len(self.meds)!=2 and i==len(self.meds)-1:
                 t_med0, t_med1, t_med2 = self.meds[i-1], self.meds[i], None
             else:
-                t_med0, t_med1, t_med2 = self.meds[i-1], self.meds[i], self.meds[i+1]
+                if len(self.meds)==2:
+                    break
+                else:
+                    t_med0, t_med1, t_med2 = self.meds[i-1], self.meds[i], self.meds[i+1]
             
             all_types = set(["abs", "mean", "std", "trends", "time"])
             cols_b = [f"before_{t}_{b_w}" for b_w in before_windows for t in all_types]
@@ -147,12 +154,14 @@ class DatasetQuerier(AnalysisUtils):
             
             col_vals = []
             for col in cols:
-                col_vals.append(
-                    temp.assign(dict=temp[col].dropna().map(lambda d: json.loads(d.replace("\'", "\"")).items())).explode("dict", ignore_index=True).assign(
-                        LAB_ITEMID=lambda df: df.dict.str.get(0),
-                        temp=lambda df: df.dict.str.get(1)
-                    ).drop(columns=["dict"]+cols).astype({'temp':'float64'}).rename(columns={"temp":f"{col}_sp"}).dropna(subset=["LAB_ITEMID"])
-                )
+                temp_col = temp.assign(dict=temp[col].dropna().map(lambda d: d.items())).explode("dict", ignore_index=True).assign(
+#                temp_col = temp.assign(dict=temp[col].dropna().map(lambda d: dict(json.loads(d.replace("\'", "\""))).items())).explode("dict", ignore_index=True).assign(
+                                        LAB_ITEMID=lambda df: df.dict.str.get(0),
+                                        temp=lambda df: df.dict.str.get(1)
+                                        ).drop(columns=["dict"]+cols)
+                temp_col.loc[temp_col.temp == {}, 'temp'] = np.NaN
+                temp_col = temp_col.astype({'temp':'float64'}).rename(columns={"temp":f"{col}_sp"}).dropna(subset=["LAB_ITEMID"])
+                col_vals.append(temp_col)
             for i in range(1, len(col_vals)):
                 col_vals[i] = pd.merge(col_vals[i-1], col_vals[i], how="outer", on=list(t_med1.columns)+["LAB_ITEMID"])
             
@@ -197,7 +206,7 @@ class DatasetQuerier(AnalysisUtils):
         final_pairs_data = []
         interim_pairs_data = []
         
-        for i in tqdm(range(len(n_meds))):
+        for i in range(len(n_meds)):
             
             if i==0 :
                 t_med0, t_med1, t_med2 = None, self.meds[i], self.meds[i+1]
