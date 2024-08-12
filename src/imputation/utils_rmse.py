@@ -12,7 +12,7 @@ def mask_values(df, columns, mask_rate=0.3, seed=0, logfile=None):
 
     for col in columns:
         sampled_rows = masked_df[col].dropna().sample(frac=mask_rate, random_state=seed).index  # ensure random seed
-        masked_df.loc[sampled_rows, col] = pd.np.nan  # mask avaiable data
+        masked_df.loc[sampled_rows, col] = np.nan  # mask avaiable data
         mask_index[col] = sampled_rows
 
     N_after = masked_df.isnull().sum().sum()

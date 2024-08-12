@@ -14,6 +14,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 import os
 
 def Kfold_splits(df, Kfold):
@@ -197,7 +198,7 @@ def impute_drug_forward(df, drug_forward_params,logfile, features):
 
             write_log(logfile, f"\n! ! ! med={med_name}, lab={lab_name}, asdms={adms_counter}, patients={pat_counter}")
 
-            df_drugs_counts = df_drugs_counts.append(pd.Series(tempRow, index=df_drugs_counts.columns), ignore_index=True)
+            df_drugs_counts.loc[len(df_drugs_counts.index)] = pd.Series(tempRow, index=df_drugs_counts.columns)
 
         df_temp_masked_imputed.to_csv('df_temp_masked_imputed_'+lab_name+'.csv')
 
@@ -282,7 +283,7 @@ def compare_models_Kfold_validation(df, models_vector, imputation_methods,
             model_results["Split"] = split
             model_results["Target"] = y_test
             x = pd.DataFrame.from_dict(model_results)
-            risk_scores_df = risk_scores_df.append(x, sort=False)
+            risk_scores_df = risk_scores_df.merge(x, on=['common_column'], how='outer')
         split += 1
     
     risk_scores_df.to_pickle(reports_path + 'risk_scores.pkl')
@@ -1084,7 +1085,7 @@ def calc_risk_scores(risk_scores_df,models_vector,ver):
                 aupr = auc(recall, precision)
 
                 tempRow = [ind_split,imp_method,model,aucRes, aupr]
-                df_performance = df_performance.append(pd.Series(tempRow, index=df_performance.columns), ignore_index=True)
+                df_performance.loc[len(df_performance.index)] = pd.Series(tempRow, index=df_performance.columns)
 
     df_performance.to_csv('df_performance_'+ver+'.csv')
 
