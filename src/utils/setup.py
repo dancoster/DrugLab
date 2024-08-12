@@ -1,15 +1,13 @@
 import warnings
 warnings.filterwarnings('ignore')
 import os
-import json
 import pandas as pd
 import numpy as np
 import win32com.client
 from tqdm import tqdm
 from src.imputation import utils_general
+from paths import config
 # Load configuration from JSON file
-with open('basic_config.json', 'r') as f:
-    config = json.load(f)
 
 # Paths
 root_path = config['paths']['root_path']
