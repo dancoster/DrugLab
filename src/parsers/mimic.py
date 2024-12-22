@@ -46,7 +46,6 @@ class MIMICParser(AnalysisUtils):
         ### Add medication information from D_ITEMS table in MIMIC III dataset (like label name)
         med_data = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_RAW_PATH, "D_ITEMS.csv.gz"))
         med_data = med_data[med_data["DBSOURCE"].isin(["metavision", "carevue"])]   ## As we are only working with INPUTEVENTS_MV and INPUTEVENTS_CV tables
-        
         # Merge medication data with medication labels
         m_p_df = pd.merge(inputevents_mv, med_data, how="inner", on="ITEMID")
         m_p_df = m_p_df.sort_values(by="MedTimeFromAdmit") 
@@ -240,7 +239,7 @@ class MIMICParser(AnalysisUtils):
         """
         
         if not load_from_raw and os.path.exists(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_PREPROCESSED_LABDATA)):
-            labs = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_PREPROCESSED_LABDATA)) 
+            labs = pd.read_csv(os.path.join(self.data, constants.MIMIC_III_PREPROCESSED_PATH, constants.MIMIC_III_PREPROCESSED_LABDATA))
             labs = labs.drop(columns=["Unnamed: 0"])
         else:
             bool_val = not load_raw_chartevents

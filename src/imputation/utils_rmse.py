@@ -4,7 +4,7 @@ from sklearn.impute import KNNImputer
 from src.imputation import utils_imputation
 import datetime
 
-def generate_rmse_results(df_meds, features, drug_forward_params, df_data):
+def generate_rmse_results(df_meds, features, drug_forward_params, df_data, indexes):
     ver = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     logfile_name = 'log_file' + ver + '.txt'
     df_results = pd.DataFrame(
@@ -51,7 +51,7 @@ def generate_rmse_results(df_meds, features, drug_forward_params, df_data):
                                                                                   logfile_name, drug_forward_params[
                                                                                       'drug_forward_type'],
                                                                                   drug_forward_params[
-                                                                                      'mimic_data_querier'])
+                                                                                      'mimic_data_querier'], indexes)
 
             tempRow = [lab_name, med_t_name, imputer_type, 'all', all_rmse[0], all_rmse[1], all_rmse[2], all_rmse[3]]
             df_results.loc[len(df_results.index)] = pd.Series(tempRow, index=df_results.columns)
@@ -94,7 +94,7 @@ def nrmse(y, y_tag, org_max, org_min):
         For the min/max we use the scale of the original observed out of all indices"""
     return (rmse(y, y_tag) / (org_max - org_min))
 
-def calculate_rmse_nrmse(df, lab_name,imputer_type,df_med,delta_time_after,delta_time_before,logfile,drug_forward_type,mimic_data_querier):
+def calculate_rmse_nrmse(df, lab_name,imputer_type,df_med,delta_time_after,delta_time_before,logfile,drug_forward_type,mimic_data_querier, indexes):
     med_t_name = df_med.med_label[0]
 
     med_t_name_for_saving = med_t_name.replace('/','_')
@@ -181,11 +181,15 @@ def calculate_rmse_nrmse(df, lab_name,imputer_type,df_med,delta_time_after,delta
 
     # add col names
     df_masked_imputed = pd.DataFrame(df_masked_imputed, columns = df_masked.columns)
-
-    #all_rmse = calc_rmse_nrmse(df_masked_imputed,df, masked_ids,lab_name)+[len(masked_ids[lab_name]),num_masked_subjects]
     all_rmse = [np.nan,np.nan,np.nan,np.nan]
-    drugs_rmse = calc_rmse_nrmse(df_masked_imputed,df, actual_imputed_masked_indices,lab_name)+[len(actual_imputed_masked_indices[lab_name]),num_subjects_who_got_drug_at_the_time_of_drug]
-    subjects_rmse = calc_rmse_nrmse(df_masked_imputed,df, masked_indices_of_subjects_who_got_drug,lab_name)+[len(masked_indices_of_subjects_who_got_drug[lab_name]),num_masked_subjects_who_got_drug]
+    drugs_rmse = [np.nan,np.nan,np.nan,np.nan]
+    subjects_rmse = [np.nan,np.nan,np.nan,np.nan]
+    if 'all' in indexes:
+        all_rmse = calc_rmse_nrmse(df_masked_imputed,df, masked_ids,lab_name)+[len(masked_ids[lab_name]),num_masked_subjects]
+    if 'drugs' in indexes:
+        drugs_rmse = calc_rmse_nrmse(df_masked_imputed,df, actual_imputed_masked_indices,lab_name)+[len(actual_imputed_masked_indices[lab_name]),num_subjects_who_got_drug_at_the_time_of_drug]
+    if 'subjects' in indexes:
+        subjects_rmse = calc_rmse_nrmse(df_masked_imputed,df, masked_indices_of_subjects_who_got_drug,lab_name)+[len(masked_indices_of_subjects_who_got_drug[lab_name]),num_masked_subjects_who_got_drug]
 
     return(all_rmse,drugs_rmse,subjects_rmse)
 
