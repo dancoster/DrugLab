@@ -6,7 +6,7 @@ import numpy as np
 import win32com.client
 from tqdm import tqdm
 from src.imputation import utils_general
-from paths import config
+from src.utils.paths import config
 # Load configuration from JSON file
 
 # Paths
@@ -99,6 +99,8 @@ df_data = df.copy()
 df_data['charttime'] = pd.to_datetime(df_data['charttime'], utc=True)
 
 patient_ids = df_data.subject_id.unique()
+random_seed = 42  # You can choose any integer value here
+np.random.seed(random_seed)
 subsample_ids = np.random.choice(patient_ids, size=n_patients, replace=False)
 df_data = df_data[df_data.subject_id.isin(subsample_ids)]
 df_data.rename(columns={'Platelets': 'Platelets count'}, inplace=True)
