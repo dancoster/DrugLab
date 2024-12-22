@@ -14,8 +14,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
 import os
+
 
 def Kfold_splits(df, Kfold):
     """  Get split indices """
@@ -33,6 +33,7 @@ def Kfold_splits(df, Kfold):
 
     return splits_zipped
 
+
 def is_data_standardized(df, features):
     """  Check if the data is already standardized """
     epsilon = 1e-10
@@ -46,6 +47,7 @@ def is_data_standardized(df, features):
                 feature, mean, std, epsilon))
             return False
     return True
+
 
 def z_score_norm_seen(df, features):
     """  Standardize values of seen_data (TRAINING set). """
@@ -74,11 +76,12 @@ def z_score_norm_unseen(df, features, train_params):
         df[feature] = (df[feature] - mean) / std
     return df
 
+
 def time_series_imputation(df, features, method='fill_forward'):
     """ Perform imputation for time series missing values, by the given method """
     if method == 'fill_forward':
         df[features] = df.groupby('subject_id')[features].transform(lambda x: x.fillna(method='ffill'))
-        
+
     elif method == 'linear_interpolation':
         interpolation_func = lambda x: x.interpolate(method='linear', limit_direction='forward', axis=0)
         df[features] = df.groupby('subject_id')[features].transform(interpolation_func)
@@ -86,15 +89,16 @@ def time_series_imputation(df, features, method='fill_forward'):
     # else - doesn't perform imputation
     return df
 
-def benchmark_imputation(X_train, y_train, X_test, imputation_method, features,df_drug_forward_imputed, numerical_cols,
+
+def benchmark_imputation(X_train, y_train, X_test, imputation_method, features, df_drug_forward_imputed, numerical_cols,
                          categorical_cols, models_vector, save_coef, logfile):
     """ Perform imputation and run different ML model on the imputed dataset.
-        Returns DF containing models performance results """ 
+        Returns DF containing models performance results """
     write_log(logfile, f"\n** Perform {imputation_method} imputation")
-    
+
     X_train_before_imputation = X_train.copy()
 
-    X_train_before_imputation.to_csv('X_train_before_imputation'+imputation_method+'.csv')
+    X_train_before_imputation.to_csv('X_train_before_imputation' + imputation_method + '.csv')
 
     if imputation_method == 'drug_forward':
         X_train = df_drug_forward_imputed.loc[X_train.index]
@@ -104,13 +108,13 @@ def benchmark_imputation(X_train, y_train, X_test, imputation_method, features,d
         X_train = time_series_imputation(X_train, numerical_cols, imputation_method)
         X_test = time_series_imputation(X_test, numerical_cols, imputation_method)
 
-    X_train.to_csv('X_Train_'+imputation_method+'.csv')
+    X_train.to_csv('X_Train_' + imputation_method + '.csv')
 
     # impute first values per feature with mean
     X_train[numerical_cols] = X_train[numerical_cols].fillna(X_train_before_imputation[numerical_cols].mean())
     X_test[numerical_cols] = X_test[numerical_cols].fillna(X_train_before_imputation[numerical_cols].mean())
 
-    X_train.to_csv('X_Train_include_first_values'+imputation_method+'.csv')
+    X_train.to_csv('X_Train_include_first_values' + imputation_method + '.csv')
 
     # Remove index cols
     X_train = X_train[features]
@@ -123,13 +127,14 @@ def benchmark_imputation(X_train, y_train, X_test, imputation_method, features,d
     # run models as specified in the models vector
     model_results = ml_models.run_models(X_train, y_train, X_test, models_vector, save_coef, lists_of_features)
     model_results["imputation_method"] = imputation_method
-    
+
     return model_results
 
-def impute_drug_forward(df, drug_forward_params,logfile, features):
-#def impute_drug_forward(df, temp_df_meds,df_inhuman,delta_time_before,delta_time_after,mimic_data_querier,inputevents_mv,df_d_items):
 
-    #extract paramerters from dictionary
+def impute_drug_forward(df, drug_forward_params, logfile, features):
+    # def impute_drug_forward(df, temp_df_meds,df_inhuman,delta_time_before,delta_time_after,mimic_data_querier,inputevents_mv,df_d_items):
+
+    # extract paramerters from dictionary
     delta_time_after = drug_forward_params['delta_time_after']
     delta_time_before = drug_forward_params['delta_time_before']
     mimic_data_querier = drug_forward_params['mimic_data_querier']
@@ -139,19 +144,20 @@ def impute_drug_forward(df, drug_forward_params,logfile, features):
     temp_df_meds = drug_forward_params['temp_df_meds']
     drug_forward_type = drug_forward_params['drug_forward_type']
 
-    df_drugs_counts = pd.DataFrame(columns=['drug_name','lab_name','pat_counter','adms_counter','imputed_value','total_null_obs'])
+    df_drugs_counts = pd.DataFrame(
+        columns=['drug_name', 'lab_name', 'pat_counter', 'adms_counter', 'imputed_value', 'total_null_obs'])
 
     for lab_name in temp_df_meds['Lab Name'].unique():
         # Extract only inputevents that related to the drugs associated with lab_name, df_med includes them
-        df_inputevents,df_med = extract_med_per_lab(lab_name,temp_df_meds,df_d_items,inputevents_mv)
+        df_inputevents, df_med = extract_med_per_lab(lab_name, temp_df_meds, df_d_items, inputevents_mv)
 
-        #if (med_t_name == lab_name):
+        # if (med_t_name == lab_name):
         #    new_med_t_name = med_t_name+'temp_drug'
         #    df_med.loc[df_med['med_label'] == med_t_name,df_med.columns == 'med_label'] = new_med_t_name
         #    med_t_name = new_med_t_name
 
         # add cols of adminstration of each of this drugs to df
-        df_drugs = add_med_adminstrations_cols(df_inputevents,df,df_med)
+        df_drugs = add_med_adminstrations_cols(df_inputevents, df, df_med)
 
         # save file of subjects who got drugs associated with lab value
         df_drugs.to_csv(f'df_arugs_associated_with_{lab_name}.csv')
@@ -159,75 +165,83 @@ def impute_drug_forward(df, drug_forward_params,logfile, features):
         if (drug_forward_type == 'single_drug'):
             # Extract relevant lab_name
 
-            #med_t_name = temp_df_meds[temp_df_meds['Lab Name'] == lab_name]['Med Name'].to_list()[0]
-            #print('Create function for '+lab_name+ '<>'+med_t_name)
+            # med_t_name = temp_df_meds[temp_df_meds['Lab Name'] == lab_name]['Med Name'].to_list()[0]
+            # print('Create function for '+lab_name+ '<>'+med_t_name)
 
             # Calculate gam function
             # gam_func_temp =  create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
-            #gam_func_temp = create_gum_func_df(lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
+            # gam_func_temp = create_gum_func_df(lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
 
-            #impute missing values using gam functions
-            #df_temp_masked_imputed = drug_forward_imputation(df_drugs.copy(),lab_name,med_t_name,delta_time_before,gam_func_temp,delta_time_after,drug_forward_type)
-            df_temp_masked_imputed = drug_forward_imputation(df_drugs.copy(),lab_name,df_med,delta_time_before,mimic_data_querier,delta_time_after,drug_forward_type)
+            # impute missing values using gam functions
+            # df_temp_masked_imputed = drug_forward_imputation(df_drugs.copy(),lab_name,med_t_name,delta_time_before,gam_func_temp,delta_time_after,drug_forward_type)
+            df_temp_masked_imputed = drug_forward_imputation(df_drugs.copy(), lab_name, df_med, delta_time_before,
+                                                             mimic_data_querier, delta_time_after, drug_forward_type)
 
         if (drug_forward_type == 'multi_drugs'):
 
-            #calculate estimated value per medication
+            # calculate estimated value per medication
             for med_t_name in df_med.med_label:
-                print('Create function for '+lab_name+ '<>'+med_t_name)
-                #gam_func_temp = create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
-                gam_func_temp = create_gum_func_df(lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
-                df_drugs = drug_forward_imputation(df_drugs,lab_name,med_t_name,delta_time_before,gam_func_temp,delta_time_after,drug_forward_type)
-                med_t_name_for_saving = med_t_name.replace('/','_')
+                print('Create function for ' + lab_name + '<>' + med_t_name)
+                # gam_func_temp = create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
+                gam_func_temp = create_gum_func_df(lab_name, med_t_name, delta_time_before, delta_time_after,
+                                                   mimic_data_querier)
+                df_drugs = drug_forward_imputation(df_drugs, lab_name, med_t_name, delta_time_before, gam_func_temp,
+                                                   delta_time_after, drug_forward_type)
+                med_t_name_for_saving = med_t_name.replace('/', '_')
 
-                df_drugs.to_csv('df_drugs_temp'+med_t_name_for_saving+'.csv')
+                df_drugs.to_csv('df_drugs_temp' + med_t_name_for_saving + '.csv')
 
             df_drugs.to_csv('df_drugs_temp.csv')
 
             df_temp_masked_imputed = df_drugs.copy()
-            df_temp_masked_imputed.loc[:,df_temp_masked_imputed.columns==lab_name] = df_temp_masked_imputed[[lab_name+'_'+med_t_name for med_t_name in df_med.med_label.unique()]].mean(axis=1)
+            df_temp_masked_imputed.loc[:, df_temp_masked_imputed.columns == lab_name] = df_temp_masked_imputed[
+                [lab_name + '_' + med_t_name for med_t_name in df_med.med_label.unique()]].mean(axis=1)
 
         for med_name in df_med.med_label.unique():
             adms_counter = (len(df_drugs[~df_drugs[med_name].isna()]))
             pat_counter = (len(df_drugs[~df_drugs[med_name].isna()]['subject_id'].unique()))
-            imputed_values = (df_temp_masked_imputed[lab_name].isna().value_counts()[1] - df[lab_name].isna().value_counts()[1])
+            imputed_values = (
+                        df_temp_masked_imputed[lab_name].isna().value_counts()[1] - df[lab_name].isna().value_counts()[
+                    1])
             lab_col_len = (df[lab_name].isna().value_counts()[0])
-            print('For '+lab_name+ ' using the med '+med_name+': '+str(imputed_values)+' NaN values were imputed using drug_forward')
+            print('For ' + lab_name + ' using the med ' + med_name + ': ' + str(
+                imputed_values) + ' NaN values were imputed using drug_forward')
 
-            tempRow = [med_name,lab_name,pat_counter,adms_counter,imputed_values, lab_col_len]
+            tempRow = [med_name, lab_name, pat_counter, adms_counter, imputed_values, lab_col_len]
 
             write_log(logfile, f"\n! ! ! med={med_name}, lab={lab_name}, asdms={adms_counter}, patients={pat_counter}")
 
             df_drugs_counts.loc[len(df_drugs_counts.index)] = pd.Series(tempRow, index=df_drugs_counts.columns)
 
-        df_temp_masked_imputed.to_csv('df_temp_masked_imputed_'+lab_name+'.csv')
+        df_temp_masked_imputed.to_csv('df_temp_masked_imputed_' + lab_name + '.csv')
 
         # assign imputed values
         df_temp_masked_imputed.sort_index(inplace=True)
-        df = df.sort_index().reset_index(drop = True)
+        df = df.sort_index().reset_index(drop=True)
 
-        df_temp_masked_imputed.to_csv('df_temp_masked_imputed_after_'+lab_name+'.csv')
-        df.to_csv('df_after_'+lab_name+'.csv')
+        df_temp_masked_imputed.to_csv('df_temp_masked_imputed_after_' + lab_name + '.csv')
+        df.to_csv('df_after_' + lab_name + '.csv')
 
         df[lab_name] = df_temp_masked_imputed[lab_name]
 
     df_drugs_counts.to_csv('df_drugs_counts.csv')
 
-    #ffill the rest of the features
+    # ffill the rest of the features
     df[features] = df.groupby('subject_id')[features].transform(lambda x: x.fillna(method='ffill'))
 
-    return(df)
+    return (df)
+
 
 def compare_models_Kfold_validation(df, models_vector, imputation_methods,
-                                    features,drug_forward_params, n_folds=10,
+                                    features, drug_forward_params, n_folds=10,
                                     run_standardization=False,
                                     save_coef=False, reports_path="", logfile=""):
     """ Train and compare ML models using K-fold CV.
         Returns performance results """
 
     splits_zipped = Kfold_splits(df, n_folds)
-    risk_scores_df = pd.DataFrame()
-    
+    risk_scores_df = None
+
     X = df.drop(columns=['target'])
     y = df['target']
     X.to_pickle(reports_path + f"X.pkl")
@@ -236,17 +250,18 @@ def compare_models_Kfold_validation(df, models_vector, imputation_methods,
     index_cols = ['target', 'subject_id', 'charttime']
     categorical_cols = list(X.columns[X.dtypes == 'bool'])
     numerical_cols = [col for col in X.columns if col not in categorical_cols and \
-                      not col=='subject_id' and \
-                      not col=='charttime']
+                      not col == 'subject_id' and \
+                      not col == 'charttime']
     print("Categorical variables: ", categorical_cols)
     print("Numerical variables: ", numerical_cols)
-    assert sorted(numerical_cols + categorical_cols + index_cols) == sorted(df.columns), "Error! Additional column should be dropped."
+    assert sorted(numerical_cols + categorical_cols + index_cols) == sorted(
+        df.columns), "Error! Additional column should be dropped."
     assert sorted(numerical_cols + categorical_cols) == sorted(features), "Error! A feature is potentially missing."
 
-    #create imputed drug_forward dataset
+    # create imputed drug_forward dataset
     if (('drug_forward') in (imputation_methods)):
-        df_drug_forward_imputed = impute_drug_forward(X, drug_forward_params,logfile,features)
-        #convert to preic
+        df_drug_forward_imputed = impute_drug_forward(X, drug_forward_params, logfile, features)
+        # convert to preic
         df_drug_forward_imputed.index = X.index
         df_drug_forward_imputed.to_csv('df_drug_forward_imputed.csv')
 
@@ -257,12 +272,12 @@ def compare_models_Kfold_validation(df, models_vector, imputation_methods,
         X_train, X_test = X.loc[train_index], X.loc[test_index]
         y_train, y_test = y.loc[train_index], y.loc[test_index]
 
-        split_dict[split] = {'train' : train_index, 
-                             'test' : test_index}
+        split_dict[split] = {'train': train_index,
+                             'test': test_index}
         write_log(logfile, f"\n! ! ! fold={split}: Train={X_train.shape}, Test={X_test.shape}")
 
         # Standartization
-        if run_standardization: # required for part of the imputation methods
+        if run_standardization:  # required for part of the imputation methods
             write_log(logfile, "\n* Perform standartization\n")
             X_train, train_params = standardize_data(X_train, numerical_cols)
             X_test = standardize_unseen_data(X_test, numerical_cols, train_params)
@@ -276,28 +291,32 @@ def compare_models_Kfold_validation(df, models_vector, imputation_methods,
         # B. Numerical imputation benchmark
         for imputation_method in imputation_methods:
             model_results = benchmark_imputation(X_train.copy(), y_train.copy(), X_test.copy(),
-                                               imputation_method,
-                                               features, df_drug_forward_imputed, numerical_cols, categorical_cols,
-                                               models_vector,
-                                               save_coef=save_coef, logfile=logfile)
+                                                 imputation_method,
+                                                 features, df_drug_forward_imputed, numerical_cols, categorical_cols,
+                                                 models_vector,
+                                                 save_coef=save_coef, logfile=logfile)
             model_results["Split"] = split
             model_results["Target"] = y_test
             x = pd.DataFrame.from_dict(model_results)
-            risk_scores_df = risk_scores_df.merge(x, on=['common_column'], how='outer')
+            if risk_scores_df is None:
+                risk_scores_df = x
+            else:
+                risk_scores_df.loc[len(risk_scores_df)] = x
         split += 1
-    
+
     risk_scores_df.to_pickle(reports_path + 'risk_scores.pkl')
     with open(reports_path + 'split_index.pkl', 'wb') as f:
         pickle.dump(split_dict, f)
-    
+
     return risk_scores_df
 
 
 def monoExp(x, m, t, b):
     return m * np.exp(-t * x) + b
 
+
 # https://swharden.com/blog/2020-09-24-python-exponential-fit/
-def calc_exponent_func(x,y,lab_name,med_t_name):
+def calc_exponent_func(x, y, lab_name, med_t_name):
     xs = np.array(x)
     ys = np.array(y)
 
@@ -305,10 +324,10 @@ def calc_exponent_func(x,y,lab_name,med_t_name):
     plt.title("Original Data")
 
     # perform the fit
-    p0 = (.1, .1, 10) # start with values near those we expect
+    p0 = (.1, .1, 10)  # start with values near those we expect
     params, cv = scipy.optimize.curve_fit(monoExp, xs, ys, p0)
     m, t, b = params
-    sampleRate = 20_000 # Hz
+    sampleRate = 20_000  # Hz
     tauSec = (1 / t) / sampleRate
 
     # determine quality of the fit
@@ -321,67 +340,71 @@ def calc_exponent_func(x,y,lab_name,med_t_name):
     plt.plot(xs, ys, '.', label="data")
     x_axis_values = np.linspace(min(xs), max(xs), num=500)
     plt.plot(x_axis_values, monoExp(x_axis_values, m, t, b), '--', label="exponent")
-    plt.title("Fitted Exponential Curve "+f"\n R² = {round(rSquared,3)}" + (f" | Y = {round(m,3)} * e^(-{round(t,3)} * x) + {round(b,3)}"))
+    plt.title("Fitted Exponential Curve " + f"\n R² = {round(rSquared, 3)}" + (
+        f" | Y = {round(m, 3)} * e^(-{round(t, 3)} * x) + {round(b, 3)}"))
     plt.legend()
-    plt.axhline(y = 1, color = 'r', linestyle = '-')
-    plt.xlabel("Hours since "+med_t_name+ " adminstration")
+    plt.axhline(y=1, color='r', linestyle='-')
+    plt.xlabel("Hours since " + med_t_name + " adminstration")
     plt.ylabel('Ratio of ' + lab_name)
-    plt.savefig('exponential_'+lab_name+'_'+med_t_name+'.jpeg')
+    plt.savefig('exponential_' + lab_name + '_' + med_t_name + '.jpeg')
     plt.clf()
     # inspect the parameters
     print(f"Y = {m} * e^(-{t} * x) + {b}")
     print(f"Tau = {tauSec * 1e6} µs")
 
-    return(params)
+    return (params)
 
-def extract_ratio_and_after_time_new(df_drug_lab,before_windows,after_windows,delta_time_before,delta_time_after):
 
+def extract_ratio_and_after_time_new(df_drug_lab, before_windows, after_windows, delta_time_before, delta_time_after):
     # take data only according to time windows
     df_drug_lab = df_drug_lab[df_drug_lab[f'before_time_{before_windows[0]}_sp'] <= int(delta_time_before[0])]
     df_drug_lab = df_drug_lab[df_drug_lab[f'after_time_{after_windows[0]}_sp'] <= int(delta_time_after[0])]
 
-    #calculate ratio
-    df_drug_lab['ratio'] = df_drug_lab[f'after_abs_{after_windows[0]}_sp']/df_drug_lab[f'before_abs_{before_windows[0]}_sp']
+    # calculate ratio
+    df_drug_lab['ratio'] = df_drug_lab[f'after_abs_{after_windows[0]}_sp'] / df_drug_lab[
+        f'before_abs_{before_windows[0]}_sp']
 
-    #define vectors for GAM calculation
+    # define vectors for GAM calculation
     x = df_drug_lab[f'after_time_{after_windows[0]}_sp']
     y = df_drug_lab['ratio']
 
-    return(x,y)
+    return (x, y)
 
-def extract_ratio_and_after_time(df_drug_lab, min_val, max_val,delta_time_before,delta_time_after):
+
+def extract_ratio_and_after_time(df_drug_lab, min_val, max_val, delta_time_before, delta_time_after):
     # remove inhuman values
     df_drug_lab = df_drug_lab[df_drug_lab['after_abs_(0, 12)_sp'] > min_val]
     df_drug_lab = df_drug_lab[df_drug_lab['before_abs_(0, 12)_sp'] > min_val]
-    df_drug_lab = df_drug_lab[df_drug_lab['after_abs_(0, 12)_sp'] <max_val]
-    df_drug_lab = df_drug_lab[df_drug_lab['before_abs_(0, 12)_sp'] <max_val]
+    df_drug_lab = df_drug_lab[df_drug_lab['after_abs_(0, 12)_sp'] < max_val]
+    df_drug_lab = df_drug_lab[df_drug_lab['before_abs_(0, 12)_sp'] < max_val]
 
     # take data only according to time windows
     df_drug_lab = df_drug_lab[df_drug_lab['before_time_(0, 12)_sp'] <= int(delta_time_before[0])]
     df_drug_lab = df_drug_lab[df_drug_lab['after_time_(0, 12)_sp'] <= int(delta_time_after[0])]
 
-    #calculate ratio
-    df_drug_lab['ratio'] = df_drug_lab['after_abs_(0, 12)_sp']/df_drug_lab['before_abs_(0, 12)_sp']
+    # calculate ratio
+    df_drug_lab['ratio'] = df_drug_lab['after_abs_(0, 12)_sp'] / df_drug_lab['before_abs_(0, 12)_sp']
     print(df_drug_lab.shape)
 
-    #remove ratio == 1 because of lab_events and chartevents bug
-    df_drug_lab = df_drug_lab[~((df_drug_lab['ratio'] == 1) & (df_drug_lab['after_time_(0, 12)_sp']<=1))]
+    # remove ratio == 1 because of lab_events and chartevents bug
+    df_drug_lab = df_drug_lab[~((df_drug_lab['ratio'] == 1) & (df_drug_lab['after_time_(0, 12)_sp'] <= 1))]
 
-    #remove rows where one of the values is mising
+    # remove rows where one of the values is mising
     df_drug_lab = df_drug_lab[~df_drug_lab['ratio'].isna()]
     df_drug_lab = df_drug_lab[~df_drug_lab['ratio'].isna()]
     print(df_drug_lab.shape)
 
-    #define vectors for GAM calculation
+    # define vectors for GAM calculation
     x = df_drug_lab['after_time_(0, 12)_sp']
     y = df_drug_lab['ratio']
 
-    return(x,y)
+    return (x, y)
+
 
 # https://pygam.readthedocs.io/en/latest/notebooks/tour_of_pygam.html
-def calc_gam_func(x,y,lab_name,med_t_name):
+def calc_gam_func(x, y, lab_name, med_t_name):
     X = np.array([[i] for i in list(x)])
-    y =  pd.DataFrame(y)
+    y = pd.DataFrame(y)
 
     # lets fit the mean model first by CV
     gam50 = ExpectileGAM(expectile=0.5).gridsearch(X, y)
@@ -389,498 +412,225 @@ def calc_gam_func(x,y,lab_name,med_t_name):
     XX = gam50.generate_X_grid(term=0, n=500)
     plt.title('GAM')
     plt.scatter(X, y, c='k', alpha=0.2)
-    plt.axhline(y = 1, color = 'r', linestyle = '-')
-    plt.xlabel("Hours since "+med_t_name+ " adminstration")
+    plt.axhline(y=1, color='r', linestyle='-')
+    plt.xlabel("Hours since " + med_t_name + " adminstration")
     plt.ylabel('Ratio of ' + lab_name)
     plt.plot(XX, gam50.predict(XX), label='GAM')
     plt.legend()
-    plt.savefig('gam_'+lab_name+'_'+med_t_name+'.jpeg')
+    plt.savefig('gam_' + lab_name + '_' + med_t_name + '.jpeg')
     plt.clf()
     print('GAM was created')
-    return(gam50)
+    return (gam50)
 
-#drug forward
-def drug_forward_imputation(df,lab_name,df_med,delta_time_before,mimic_data_querier,delta_time_after,drug_forward_type):
-#def drug_forward_imputation(df,lab_name,med_t_name,delta_time_before,gam_func,delta_time_after,drug_forward_type):
+
+# drug forward
+def drug_forward_imputation(df, lab_name, df_med, delta_time_before, mimic_data_querier, delta_time_after,
+                            drug_forward_type):
+    # def drug_forward_imputation(df,lab_name,med_t_name,delta_time_before,gam_func,delta_time_after,drug_forward_type):
 
     epsilon = 1
-    max_feature = np.percentile(df[~df[lab_name].isna()][lab_name],100-epsilon)
-    min_feature = np.percentile(df[~df[lab_name].isna()][lab_name],0+epsilon)
+    max_feature = np.percentile(df[~df[lab_name].isna()][lab_name], 100 - epsilon)
+    min_feature = np.percentile(df[~df[lab_name].isna()][lab_name], 0 + epsilon)
 
-    #create empty col for drugs
-    gams_dict ={}
+    # create empty col for drugs
+    gams_dict = {}
     for med_t_name in df_med.med_label:
-        gams_dict[med_t_name] = create_gum_func_df(lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier)
+        gams_dict[med_t_name] = create_gum_func_df(lab_name, med_t_name, delta_time_before, delta_time_after,
+                                                   mimic_data_querier)
 
     # Go only overpatients who got the drug
     for pat_id in tqdm(df[~df[med_t_name].isna()]['subject_id'].unique(), mininterval=30):
 
-        #print(pat_id)
-    #for pat_id in tqdm(df.subject_id.unique(), mininterval=30):
+        # print(pat_id)
+        # for pat_id in tqdm(df.subject_id.unique(), mininterval=30):
 
         # calculate imputed value per subject
-        #df_pat = preprocessed_data_per_id(df, pat_id,lab_name,med_t_name,delta_time_after,int(delta_time_before[0]))
-        df_pat = preprocessed_data_per_id(df, pat_id,lab_name,df_med,delta_time_after,int(delta_time_before[0]))
+        # df_pat = preprocessed_data_per_id(df, pat_id,lab_name,med_t_name,delta_time_after,int(delta_time_before[0]))
+        df_pat = preprocessed_data_per_id(df, pat_id, lab_name, df_med, delta_time_after, int(delta_time_before[0]))
         df_pat.to_csv('df_pat.csv')
 
-        #imputed_vec = fill_drug_forward_values(df_pat, med_t_name,gam_func.predict,lab_name,delta_time_after)
-        #imputed_vec = fill_drug_forward_values(df_pat, df_med,lab_name,delta_time_after,gams_dict)
-        imputed_vec = fill_drug_forward_values_last(df_pat, df_med,lab_name,delta_time_after,gams_dict,min_feature,max_feature)
-
+        # imputed_vec = fill_drug_forward_values(df_pat, med_t_name,gam_func.predict,lab_name,delta_time_after)
+        # imputed_vec = fill_drug_forward_values(df_pat, df_med,lab_name,delta_time_after,gams_dict)
+        imputed_vec = fill_drug_forward_values_last_optimized(df_pat, df_med, lab_name, delta_time_after, gams_dict,
+                                                              min_feature, max_feature)
 
         # assign imputed_vec
         if (drug_forward_type == 'single_drug'):
             df.loc[df.subject_id == pat_id, lab_name] = imputed_vec.to_list()
         # assign imputed_vec
         if (drug_forward_type == 'multi_drugs'):
-            df.loc[df.subject_id == pat_id, lab_name+'_'+med_t_name] = imputed_vec.to_list()
+            df.loc[df.subject_id == pat_id, lab_name + '_' + med_t_name] = imputed_vec.to_list()
 
-    return(df)
+    return (df)
 
 
-
-def extract_ratio_and_after_time_df(df_drug_lab,delta_time_before,delta_time_after):
-
+def extract_ratio_and_after_time_df(df_drug_lab, delta_time_before, delta_time_after):
     # take data only according to time windows
     df_drug_lab = df_drug_lab[df_drug_lab['before_time_(0, 6)_sp'] <= int(delta_time_before[0])]
     df_drug_lab = df_drug_lab[df_drug_lab['after_time_(0, 4)_sp'] <= int(delta_time_after[0])]
 
-    #calculate ratio
-    df_drug_lab['ratio'] = df_drug_lab['after_abs_(0, 4)_sp']/df_drug_lab['before_abs_(0, 6)_sp']
+    # calculate ratio
+    df_drug_lab['ratio'] = df_drug_lab['after_abs_(0, 4)_sp'] / df_drug_lab['before_abs_(0, 6)_sp']
 
-    #remove rows where one of the values is mising
-    #df_drug_lab = df_drug_lab[~df_drug_lab['ratio'].isna()]
+    # remove rows where one of the values is mising
+    # df_drug_lab = df_drug_lab[~df_drug_lab['ratio'].isna()]
 
-    #define vectors for GAM calculation
+    # define vectors for GAM calculation
     x = df_drug_lab['after_time_(0, 4)_sp']
     y = df_drug_lab['ratio']
 
-    return(x,y)
-def create_gum_func_df(lab_name,med_t_name,delta_time_before,delta_time_after,final):
-    #load_data_
+    return (x, y)
+
+
+def create_gum_func_df(lab_name, med_t_name, delta_time_before, delta_time_after, final):
+    # load_data_
     med_lab_pair = final[(final.LAB_NAME == lab_name) & (final['MED_NAME'] == med_t_name)]
     df_drug_lab = med_lab_pair
     print(df_drug_lab.shape)
 
-    x,y = extract_ratio_and_after_time_df(df_drug_lab,delta_time_before,delta_time_after)
-    exp_params, gam_func = exponent_gam_plot(x,y,lab_name,med_t_name)
-    #exp_params = calc_exponent_func
-    #gam_func = calc_gam_func(x,y,lab_name,med_t_name)
+    x, y = extract_ratio_and_after_time_df(df_drug_lab, delta_time_before, delta_time_after)
+    exp_params, gam_func = exponent_gam_plot(x, y, lab_name, med_t_name)
+    # exp_params = calc_exponent_func
+    # gam_func = calc_gam_func(x,y,lab_name,med_t_name)
 
-    return(gam_func)
+    return (gam_func)
 
-def create_gum_func(df_inhuman,lab_name,med_t_name,delta_time_before,delta_time_after,mimic_data_querier):
+
+def create_gum_func(df_inhuman, lab_name, med_t_name, delta_time_before, delta_time_after, mimic_data_querier):
     max_val = float(df_inhuman[df_inhuman.full_name == lab_name]['max_inhuman'].tolist()[0])
     min_val = float(df_inhuman[df_inhuman.full_name == lab_name]['min_inhuman'].tolist()[0])
 
-    b_w = [(0,12)]
-    a_w = [(0,12)]
+    b_w = [(0, 12)]
+    a_w = [(0, 12)]
 
-    #load_data_
+    # load_data_
     med_lab_pair = mimic_data_querier.query(med_t_name, lab_name, b_w, a_w)
     df_drug_lab = med_lab_pair[0]
 
-    x,y = extract_ratio_and_after_time(df_drug_lab, min_val, max_val,delta_time_before,delta_time_after)
-    exp_params, gam_func = exponent_gam_plot(x,y,lab_name,med_t_name)
-    #exp_params = calc_exponent_func
-    #gam_func = calc_gam_func(x,y,lab_name,med_t_name)
+    x, y = extract_ratio_and_after_time(df_drug_lab, min_val, max_val, delta_time_before, delta_time_after)
+    exp_params, gam_func = exponent_gam_plot(x, y, lab_name, med_t_name)
+    # exp_params = calc_exponent_func
+    # gam_func = calc_gam_func(x,y,lab_name,med_t_name)
 
-    return(gam_func)
+    return (gam_func)
 
 
-def extract_med_per_lab(lab_name,df_meds,df_d_items,inputevents_mv):
-    #Create lab specific list of medications
-    df_med = df_meds[(df_meds['Lab Name'] == lab_name)][['Lab Name','Med Name']].rename(columns={'Med Name':'med_label'})
+def extract_med_per_lab(lab_name, df_meds, df_d_items, inputevents_mv):
+    # Create lab specific list of medications
+    df_med = df_meds[(df_meds['Lab Name'] == lab_name)][['Lab Name', 'Med Name']].rename(
+        columns={'Med Name': 'med_label'})
 
-    #pull drug itemid from d_items
-    med_item_id = df_d_items[(df_d_items.LABEL.isin(df_med.med_label)) & (df_d_items.DBSOURCE == 'metavision')][['LABEL','ITEMID']]
+    # pull drug itemid from d_items
+    med_item_id = df_d_items[(df_d_items.LABEL.isin(df_med.med_label)) & (df_d_items.DBSOURCE == 'metavision')][
+        ['LABEL', 'ITEMID']]
 
     # add item id to dataframe
     df_med = df_med.merge(med_item_id, left_on='med_label', right_on='LABEL').drop(['LABEL'], axis=1)
 
-    #pull relevant medications to lab_name
+    # pull relevant medications to lab_name
     df_inputevents = inputevents_mv[inputevents_mv.ITEMID.isin(df_med.ITEMID)]
 
     # round start time to hour
     df_inputevents['STARTTIME_rounded'] = pd.to_datetime(df_inputevents['STARTTIME'], utc=True).dt.round(freq='H')
 
-    #Take mean amount or drug per hour
-    df_inputevents= df_inputevents.groupby(['ITEMID','SUBJECT_ID','STARTTIME_rounded'])['AMOUNT'].mean().reset_index()
+    # Take mean amount or drug per hour
+    df_inputevents = df_inputevents.groupby(['ITEMID', 'SUBJECT_ID', 'STARTTIME_rounded'])[
+        'AMOUNT'].mean().reset_index()
 
-    return(df_inputevents,df_med)
+    return (df_inputevents, df_med)
 
 
-def add_med_adminstrations_cols(df_inputevents,df_data,df_med):
-
-    #Add drug cols
+def add_med_adminstrations_cols(df_inputevents, df_data, df_med):
+    # Add drug cols
     for temp_item_id in df_med.ITEMID:
         temp_df_inputevents = df_inputevents[df_inputevents.ITEMID == temp_item_id].reset_index()
-        df_data = pd.merge(df_data, temp_df_inputevents,  how='left', left_on=['subject_id','charttime'], right_on = ['SUBJECT_ID','STARTTIME_rounded'])
-        df_data = df_data.drop(['SUBJECT_ID','STARTTIME_rounded','index','ITEMID'], axis=1)
+        df_data = pd.merge(df_data, temp_df_inputevents, how='left', left_on=['subject_id', 'charttime'],
+                           right_on=['SUBJECT_ID', 'STARTTIME_rounded'])
+        df_data = df_data.drop(['SUBJECT_ID', 'STARTTIME_rounded', 'index', 'ITEMID'], axis=1)
         med_name = df_med[df_med.ITEMID == temp_item_id]['med_label'].iloc[0]
         df_data = df_data.rename(columns={"AMOUNT": med_name})
 
     # sort charttime in descending order per subject id
-    df_data = df_data.sort_values(['subject_id','charttime'])
+    df_data = df_data.sort_values(['subject_id', 'charttime'])
 
-    return(df_data.copy())
+    return (df_data.copy())
 
-def old_preprocessed_data_per_id(df_lab_data, pat_id,lab_name,med_t_name,delta_time_after,delta_time_before):
-    # filter data per sample
-    df_pat = df_lab_data[(df_lab_data.subject_id == pat_id)][['charttime','subject_id',lab_name]+[med_t_name]]
 
-    #convert chartime to index
-    df_pat.index = df_pat.charttime
+def preprocessed_data_per_id(df_lab_data, pat_id, lab_name, df_med, delta_time_after, delta_time_before):
+    # Extract lab levels, and admissions of drugs which are assosicated with it
+    df_pat = df_lab_data[(df_lab_data.subject_id == pat_id)][
+        ['charttime', 'subject_id', lab_name] + df_med.med_label.to_list()]
 
-    # count how many dosages were adminstered on the next delta_time_after(=4) hours.
-    df_pat[med_t_name+'_counter'] = df_pat[med_t_name].rolling(delta_time_after).count()
-
-    # Create delta_time_after(=4) cols for estimated value
-    for i in range(int(delta_time_after[0])+1):
-        df_pat['drug'+'_'+str(i)] = np.full(len(df_pat[med_t_name]), np.nan)
-
-    #create new col 'new'_labname with ffil forward lab_name up to delta_time_before(=6) window
-    df_pat = fffil_deltatime_feature(df_pat,lab_name,delta_time_before)
-
-    #reset charttime(index)
-    df_pat = df_pat.reset_index(drop=True)
-
-    return(df_pat)
-
-def preprocessed_data_per_id(df_lab_data, pat_id,lab_name,df_med,delta_time_after,delta_time_before):
-    #Extract lab levels, and admissions of drugs which are assosicated with it
-    df_pat = df_lab_data[(df_lab_data.subject_id == pat_id)][['charttime','subject_id',lab_name]+df_med.med_label.to_list()]
-
-    #convert chartime to index
+    # convert chartime to index
     df_pat.index = df_pat.charttime
 
     for med_t_name in df_med.med_label:
         # count how many dosages were adminstered on the next delta_time_after(=4) hours.
-        #df_pat[med_t_name+'_counter'] = df_pat[med_t_name].rolling(delta_time_after).count()
+        # df_pat[med_t_name+'_counter'] = df_pat[med_t_name].rolling(delta_time_after).count()
 
         # Create delta_time_after(=4) cols for estimated value
-        for i in range(int(delta_time_after[0])+1):
-            df_pat['d'+'_'+med_t_name+'_'+str(i)] = np.full(len(df_pat[med_t_name]), np.nan)
+        for i in range(int(delta_time_after[0]) + 1):
+            df_pat['d' + '_' + med_t_name + '_' + str(i)] = np.full(len(df_pat[med_t_name]), np.nan)
 
-    #create new col 'new'_labname with ffil forward lab_name up to delta_time_before(=6) window
-    df_pat = fffil_deltatime_feature(df_pat,lab_name,delta_time_before)
+    # create new col 'new'_labname with ffil forward lab_name up to delta_time_before(=6) window
+    df_pat = fffil_deltatime_feature(df_pat, lab_name, delta_time_before)
 
-    #reset charttime(index)
+    # reset charttime(index)
     df_pat = df_pat.reset_index(drop=True)
 
-    return(df_pat)
+    return (df_pat)
 
-def old_fill_drug_forward_values(df_pat, med_t_name,temp_GAM,lab_name,delta_time_after):
+
+def fill_drug_forward_values_last_optimized(df_pat, df_med, lab_name, delta_time_after, gams_dict, min_feature,
+                                            max_feature):
     int_delta_time_after = int(delta_time_after[0])
+    patients = df_pat['subject_id'].unique()
 
-    #add counter per number of values of lab name
-    df_pat['indictor'] = df_pat[lab_name]
-    df_pat.loc[~df_pat[lab_name].isna(),'indictor'] = 1
-    df_pat['counter'] = df_pat.groupby('indictor').cumcount() + 1
-    df_pat['counter'] = df_pat['counter'].ffill()
+    # Precompute GAM predictions for all medications and time points
+    gam_predictions = {
+        med_t_name: [gams_dict[med_t_name].predict(np.array([[t]]))[0]
+                     for t in range(int_delta_time_after + 1)]
+        for med_t_name in df_med.med_label
+    }
 
-    if (df_pat[lab_name].count() == 0):
-        df_pat['counter'] = 0
-        return(df_pat[lab_name])
+    # Prepare columns for imputed values
+    cols_list = [f'd_{med_t_name}_{i}' for med_t_name in df_med.med_label for i in range(int_delta_time_after + 1)]
+    df_pat[cols_list] = np.nan
+    df_pat[f'{lab_name}d_forward'] = df_pat[lab_name]  # Initialize with lab values
 
-    # iterate over all drug cols
-    for ind in range(len(df_pat[med_t_name])):
-
-        #check if drug was adminstered
-        if (~np.isnan(df_pat[med_t_name][ind])):
-
-            # the counter of lab values in the time of drug adminstration
-            lab_counter = df_pat['counter'][ind]
-            if (~np.isnan(lab_counter)):
-                last_value_current_lab_ind = max(df_pat[df_pat['counter'] == lab_counter].index)
-            else:
-                last_value_current_lab_ind = np.nan
-
-            #calculate estimate lab result
-            temp_vec = ([round(temp_GAM(i)[0]*df_pat['new_'+lab_name][ind],2) for i in range(0,int_delta_time_after+1)])
-
-            # assign estimated value based on previous values
-            assigned = 0
-            for i in range(0,int_delta_time_after+1):
-
-                # check one of the drug cols is empty
-                if ((np.isnan(df_pat['drug_'+str(i)][ind])) & (assigned == 0)):
-
-                    #claculate length of values to be assigned (created in order to handle values in the last observation of the subject)
-                    vec_len = len(df_pat.loc[df_pat.index.isin(list(range(ind,ind+5))).tolist(),'drug_'+str(i)])
-
-                    if ((last_value_current_lab_ind - ind) < 4):
-                        vec_len = (last_value_current_lab_ind - ind) + 1
-
-                    #assign values
-                    df_pat.loc[df_pat.index.isin(list(range(ind,ind+vec_len))).tolist(),'drug_'+str(i)] = temp_vec[0:vec_len]
-
-                    assigned+=1
-
-    # Claculated imputed values based on drug effected glucose
-    df_pat[lab_name+'d_forward'] = round(df_pat[[('drug_'+str(i)) for i in range(0,int_delta_time_after+1)]].mean(axis=1),2)
-
-    #assign imputed values for NaN Glucose values
-    df_pat.loc[df_pat[lab_name].isna(),lab_name] = df_pat[df_pat[lab_name].isna()][lab_name+'d_forward']
-
-    return (df_pat[lab_name])
-
-
-def fill_drug_forward_values(df_pat, df_med,lab_name,delta_time_after,gams_dict):
-    int_delta_time_after = int(delta_time_after[0])
-
-    #add counter per number of values of lab name
-    df_pat['indictor'] = df_pat[lab_name]
-    df_pat.loc[~df_pat[lab_name].isna(),'indictor'] = 1
-    df_pat['counter'] = df_pat.groupby('indictor').cumcount() + 1
-    df_pat['counter'] = df_pat['counter'].ffill()
-    df_pat['counter'] = df_pat['counter'].fillna(0)
-
-    if (df_pat[lab_name].count() == 0):
-        df_pat['counter'] = 0
-
-    #assign values
-    cols_list = list(np.concatenate([[('d'+'_'+med_t_name+'_'+str(i)) for i in range(0,int_delta_time_after+1)] for med_t_name in df_med.med_label]))
-    df_pat.loc[~df_pat[lab_name].isna(),cols_list] = df_pat[~df_pat[lab_name].isna()][lab_name]
-
-    # iterate over all drug cols
-    #for ind in range(179):
-    for ind in range(len(df_pat)):
+    # Vectorized processing for each patient
+    for pat_id in patients:
+        df_patient = df_pat[df_pat['subject_id'] == pat_id].copy()
 
         for med_t_name in df_med.med_label:
+            drug_indices = df_patient[~df_patient[med_t_name].isna()].index
 
-            #check if drug was adminstered
-            if (~np.isnan(df_pat[med_t_name][ind])):
-
-                #extract relevant GAM for the drug
-                temp_GAM = gams_dict[med_t_name].predict
-
-                # The cumolotive count of lab measrement per patient at the time of drug adminstration
-                lab_counter = df_pat['counter'][ind]
-                if (~np.isnan(lab_counter)):
-                    last_value_current_lab_ind = max(df_pat[df_pat['counter'] == lab_counter].index)
+            for idx in drug_indices:
+                # Calculate imputed values for all future time points
+                if not np.isnan(df_patient.loc[idx, lab_name]):
+                    base_value = df_patient.loc[idx, lab_name]
                 else:
-                    last_value_current_lab_ind = np.nan
+                    base_value = df_patient.loc[idx, f'new_{lab_name}']
+                imputed_values = [max(min(base_value * pred, max_feature), min_feature)
+                                  for pred in gam_predictions[med_t_name]]
 
-                #calculate estimate lab result
-                temp_vec = ([round(temp_GAM(i)[0]*df_pat['new_'+lab_name][ind],2) for i in range(0,int_delta_time_after+1)])
+                # Assign imputed values to columns
+                for t in range(len(imputed_values)):
+                    col_name = f'd_{med_t_name}_{t}'
+                    target_idx = idx + t
+                    if target_idx < len(df_patient):
+                        df_patient.loc[target_idx, col_name] = imputed_values[t]
 
-                # assign estimated value based on previous values
-                assigned = 0
+        # Compute the average imputed values across medications
+        d_forward_cols = [f'd_{med_t_name}_{t}' for med_t_name in df_med.med_label for t in
+                          range(int_delta_time_after + 1)]
+        df_patient[f'{lab_name}d_forward'] = df_patient[d_forward_cols].mean(axis=1, skipna=True)
 
+        # Replace missing lab values with imputed ones
+        df_patient[lab_name] = df_patient[lab_name].combine_first(df_patient[f'{lab_name}d_forward'])
 
-                for i in range(0,int_delta_time_after+1):
-                    # CASE A - the drug was adminstered at the time of lab test
-                    if (df_pat[f'interval_{lab_name}_prev_date'][ind] == 0):
-                        #nd = ind+1
-
-                        # Ignore if that's the last observation of the patient
-                        if (df_pat.index.get_loc(ind) != (len(df_pat)-1)):
-
-                            if ((np.isnan(df_pat['d'+'_'+med_t_name+'_'+str(i)][ind+1])) & (assigned == 0)):
-                                #claculate length of values to be assigned (created in order to handle values in the last observation of the subject)
-                                vec_len = len(df_pat.loc[df_pat.index.isin(list(range(ind+1,ind+5))).tolist(),'d'+'_'+med_t_name+'_'+str(i)])
-                                if ((last_value_current_lab_ind - ind+1) < vec_len+1):
-                                    vec_len = (last_value_current_lab_ind - ind+1)
-
-                                #assign values
-                                df_pat.loc[df_pat.index.isin(list(range(ind+1,ind+1+vec_len))).tolist(),'d'+'_'+med_t_name+'_'+str(i)] = temp_vec[1:vec_len+1]
-
-                                #ffil rest of values until measured lab
-                                d_col_name = 'd'+'_'+med_t_name+'_'+str(i)
-                                prev_date_col = 'interval_' + lab_name + "_" + "prev_date"
-
-                                #check if the lab measurement was drawn
-                                vec_len = vec_len-1
-
-                                if (~np.isnan(df_pat.groupby(['counter'])[prev_date_col].max()[df_pat['counter'][ind+1]])):
-                                    max_index_with_val = int(df_pat.groupby(['counter'])[prev_date_col].max()[df_pat['counter'][ind+1]] - df_pat[prev_date_col][ind+1+vec_len])
-                                    df_pat.loc[ind+1+vec_len:int(ind+1+vec_len+max_index_with_val),d_col_name] =  df_pat[d_col_name][ind+1+vec_len:int(ind+1+vec_len+max_index_with_val+1)].ffill(limit=max_index_with_val+1)
-
-                                assigned+=1
-
-                    # CASE B - the drug was not adminstered at the time of lab test
-                    else:
-                        # check one of the drug cols is empty
-                        if ((np.isnan(df_pat['d'+'_'+med_t_name+'_'+str(i)][ind])) & (assigned == 0)):
-
-                            #claculate length of values to be assigned (created in order to handle values in the last observation of the subject)
-                            vec_len = len(df_pat.loc[df_pat.index.isin(list(range(ind,ind+4))).tolist(),'d'+'_'+med_t_name+'_'+str(i)])
-                            if ((last_value_current_lab_ind - ind) < vec_len+1):
-                                vec_len = (last_value_current_lab_ind - ind)
-
-                            #assign values
-                            df_pat.loc[df_pat.index.isin(list(range(ind,ind+vec_len+1))).tolist(),'d'+'_'+med_t_name+'_'+str(i)] = temp_vec[0:vec_len+1]
-
-                            #ffil rest of values until measured lab
-                            d_col_name = 'd'+'_'+med_t_name+'_'+str(i)
-                            prev_date_col = 'interval_' + lab_name + "_" + "prev_date"
-                            if (~np.isnan(df_pat.groupby(['counter'])[prev_date_col].max()[df_pat['counter'][ind]])):
-                                max_index_with_val = int(df_pat.groupby(['counter'])[prev_date_col].max()[df_pat['counter'][ind]] - df_pat[prev_date_col][ind+vec_len])
-                                df_pat.loc[ind+vec_len:int(ind+vec_len+max_index_with_val),d_col_name] =  df_pat[d_col_name][ind+vec_len:int(ind+vec_len+max_index_with_val+1)].ffill(limit=max_index_with_val+1)
-
-                            assigned+=1
-
-        # Claculated imputed values based on drug effected glucose
-        cols_list = list(np.concatenate([[('d'+'_'+med_t_name+'_'+str(i)) for i in range(0,int_delta_time_after+1)] for med_t_name in df_med.med_label]))
-        df_pat[lab_name+'d_forward'] = round(df_pat[cols_list].mean(axis=1),2)
-
-
-        #df_pat[lab_name+'d_forward'] = round(df_pat[[('d'+'_'+med_t_name+'_'+str(i)) for i in range(0,int_delta_time_after+1)]].mean(axis=1),2)
-
-        #assign imputed values for NaN Glucose values
-        #df_pat.loc[df_pat[lab_name].isna(),lab_name] = df_pat[df_pat[lab_name].isna()][lab_name+'d_forward']
-
-        if (ind != len(df_pat)-1):
-            if (~df_pat[cols_list].isnull().apply(lambda x: all(x), axis=1)[ind]) & (~np.isnan(df_pat.loc[ind+1, 'new_'+lab_name])):
-        #if (~np.isnan(df_pat[med_t_name][ind])):
-                df_pat.loc[ind+1, 'new_'+lab_name] = float(df_pat[lab_name+'d_forward'][ind])
-
-    #assign imputed values for NaN Glucose values
-    df_pat.loc[df_pat[lab_name].isna(),lab_name] = df_pat[df_pat[lab_name].isna()][lab_name+'d_forward']
-
-    return (df_pat[lab_name])
-
-def fill_drug_forward_values_last(df_pat, df_med,lab_name,delta_time_after,gams_dict,min_feature,max_feature):
-    int_delta_time_after = int(delta_time_after[0])
-
-    #add counter per number of values of lab name
-    df_pat['indictor'] = df_pat[lab_name]
-    df_pat.loc[~df_pat[lab_name].isna(),'indictor'] = 1
-    df_pat['counter'] = df_pat.groupby('indictor').cumcount() + 1
-    df_pat['counter'] = df_pat['counter'].ffill()
-    df_pat['counter'] = df_pat['counter'].fillna(0)
-
-    if (df_pat[lab_name].count() == 0):
-        df_pat['counter'] = 0
-
-    #assign values
-    cols_list = list(np.concatenate([[('d'+'_'+med_t_name+'_'+str(i)) for i in range(0,int_delta_time_after+1)] for med_t_name in df_med.med_label]))
-    df_pat.loc[~df_pat[lab_name].isna(),cols_list] = df_pat[~df_pat[lab_name].isna()][lab_name]
-
-    #Add time values
-    time_cols_list = [('d'+'_'+med_t_name+'_'+str(i)+'_t') for i in range(0,int_delta_time_after+1) for med_t_name in df_med.med_label]
-    df_pat[time_cols_list] = np.nan
-
-    df_pat[lab_name+'d_forward'] = df_pat[lab_name]
-
-    # iterate over all drug cols
-    for ind in range(len(df_pat)):
-        for med_t_name in df_med.med_label:
-            #extract relevant GAM for the drug
-            temp_GAM = gams_dict[med_t_name].predict
-
-            values_array = pd.DataFrame({'value':[temp_GAM(i)[0] for i in range(0,int(delta_time_after[0])+1)]})
-            if (values_array.value[0]<1):
-                last_after_time_point = values_array.value[(values_array.value < 1)==True].last_valid_index()
-            else:
-                last_after_time_point = values_array.value[(values_array.value > 1)==True].last_valid_index()
-
-            int_delta_time_after = last_after_time_point
-
-            #check if drug was adminstered
-            if (~np.isnan(df_pat[med_t_name][ind])):
-
-                # The cumolotive count of lab measrement per patient at the time of drug adminstration
-                lab_counter = df_pat['counter'][ind]
-                if (~np.isnan(lab_counter)):
-                    last_value_current_lab_ind = max(df_pat[df_pat['counter'] == lab_counter].index)
-                else:
-                    last_value_current_lab_ind = np.nan
-
-                #calculate estimate lab result
-                temp_vec = ([round(temp_GAM(i)[0]*df_pat['new_'+lab_name][ind],2) for i in range(0,int_delta_time_after+1)])
-
-                # assign estimated value based on previous values
-                assigned = 0
-
-                # iterate over cols that generate imputed values by drugs
-                for i in range(0,int_delta_time_after+1):
-                    # CASE A - the drug was adminstered at the time of lab test
-                    if (df_pat[f'interval_{lab_name}_prev_date'][ind] == 0):
-                        #nd = ind+1
-
-                        # Ignore if that's the last observation of the patient
-                        if (df_pat.index.get_loc(ind) != (len(df_pat)-1)):
-
-                            # check if the which col of imputedf values by drugs are empty
-                            if ((np.isnan(df_pat['d'+'_'+med_t_name+'_'+str(i)][ind+1])) & (assigned == 0)):
-                                #claculate length of values to be assigned (created in order to handle values in the last observation of the subject)
-                                vec_len = len(df_pat.loc[df_pat.index.isin(list(range(ind+1,ind+int_delta_time_after+1))).tolist(),'d'+'_'+med_t_name+'_'+str(i)])
-                                if ((last_value_current_lab_ind - ind) < vec_len):
-                                    vec_len = (last_value_current_lab_ind - ind)
-
-                                #assign imputed values
-                                df_pat.loc[df_pat.index.isin(list(range(ind+1,ind+1+vec_len))).tolist(),'d'+'_'+med_t_name+'_'+str(i)] = temp_vec[1:vec_len+1]
-
-                                #assign time of imputed values
-                                df_pat.loc[df_pat.index.isin(list(range(ind+1,ind+1+vec_len))).tolist(),'d'+'_'+med_t_name+'_'+str(i)+'_t'] = range(ind+1,ind+1+vec_len)
-
-                                #ffil rest of values until measured lab
-                                d_col_name = 'd'+'_'+med_t_name+'_'+str(i)
-                                d_t_col_name = 'd'+'_'+med_t_name+'_'+str(i)+'_t'
-
-                                prev_date_col = 'interval_' + lab_name + "_" + "prev_date"
-
-                                #check if the lab measurement was drawn
-                                vec_len = vec_len-1
-
-                                if (~np.isnan(df_pat.groupby(['counter'])[prev_date_col].max()[df_pat['counter'][ind+1]])):
-                                    max_index_with_val = int(df_pat.groupby(['counter'])[prev_date_col].max()[df_pat['counter'][ind+1]] - df_pat[prev_date_col][ind+1+vec_len])
-                                    df_pat.loc[ind+1+vec_len:int(ind+1+vec_len+max_index_with_val),d_col_name] =  df_pat[d_col_name][ind+1+vec_len:int(ind+1+vec_len+max_index_with_val+1)].ffill(limit=max_index_with_val+1)
-                                    df_pat.loc[ind+1+vec_len:int(ind+1+vec_len+max_index_with_val),d_t_col_name] =  df_pat[d_t_col_name][ind+1+vec_len:int(ind+1+vec_len+max_index_with_val+1)].ffill(limit=max_index_with_val+1)
-
-                                assigned+=1
-
-                    # CASE B - the drug was not adminstered at the time of lab test
-                    else:
-                        # check one of the drug cols is empty
-                        if ((np.isnan(df_pat['d'+'_'+med_t_name+'_'+str(i)][ind])) & (assigned == 0)):
-
-                            #claculate length of values to be assigned (created in order to handle values in the last observation of the subject)
-                            vec_len = len(df_pat.loc[df_pat.index.isin(list(range(ind,ind+int_delta_time_after))).tolist(),'d'+'_'+med_t_name+'_'+str(i)])
-                            if ((last_value_current_lab_ind - ind) < vec_len+1):
-                                vec_len = (last_value_current_lab_ind - ind)
-
-                            #assign imputed values
-                            df_pat.loc[df_pat.index.isin(list(range(ind,ind+vec_len+1))).tolist(),'d'+'_'+med_t_name+'_'+str(i)] = temp_vec[0:vec_len+1]
-
-                             #assign time of imputed values
-                            df_pat.loc[df_pat.index.isin(list(range(ind,ind+vec_len+1))).tolist(),'d'+'_'+med_t_name+'_'+str(i)+'_t'] = range(0,vec_len+1)
-
-                            #ffil rest of values until measured lab
-                            d_col_name = 'd'+'_'+med_t_name+'_'+str(i)
-                            d_t_col_name = 'd'+'_'+med_t_name+'_'+str(i)+'_t'
-                            prev_date_col = 'interval_' + lab_name + "_" + "prev_date"
-                            if (~np.isnan(df_pat.groupby(['counter'])[prev_date_col].max()[df_pat['counter'][ind]])):
-                                max_index_with_val = int(df_pat.groupby(['counter'])[prev_date_col].max()[df_pat['counter'][ind]] - df_pat[prev_date_col][ind+vec_len])
-                                df_pat.loc[ind+vec_len:int(ind+vec_len+max_index_with_val),d_col_name] =  df_pat[d_col_name][ind+vec_len:int(ind+vec_len+max_index_with_val+1)].ffill(limit=max_index_with_val+1)
-                                df_pat.loc[ind+vec_len:int(ind+vec_len+max_index_with_val),d_t_col_name] =  df_pat[d_t_col_name][ind+vec_len:int(ind+vec_len+max_index_with_val+1)].ffill(limit=max_index_with_val+1)
-
-                            assigned+=1
-
-        # Claculated imputed values based on drug effected glucose
-        cols_list = list(np.concatenate([[('d'+'_'+med_t_name+'_'+str(i)) for i in range(0,int_delta_time_after+1)] for med_t_name in df_med.med_label]))
-
-        # Assign to d_forward the most updated imputed value
-        if ((~df_pat.loc[ind, cols_list].isnull().values.all()) & (np.isnan(df_pat[lab_name][ind]))):
-            df_pat.loc[ind, lab_name+'d_forward'] = df_pat.loc[ind,df_pat.loc[ind,time_cols_list].astype(float).idxmin().replace('_t', '')]
-
-        # if there is a measured value, that will be the 'imputed' value
-        if (~np.isnan(df_pat[lab_name][ind])):
-            df_pat.loc[ind,lab_name+'d_forward'] = df_pat[lab_name][ind]
-
-        # If that's not the last raw
-        if (ind != len(df_pat)-1):
-
-            # (There is any availble imputed value in the row) & (There is no avilble lab value in this raw) & ((There is no estimated value in the consecutive raw) OR (Drug was administered in the consecutive raw))
-            if ((~df_pat[cols_list].isnull().apply(lambda x: all(x), axis=1)[ind]) & (np.isnan(df_pat[lab_name][ind+1])) & ((np.isnan(df_pat.loc[ind+1, 'new_'+lab_name])) | (~np.isnan(df_pat.loc[ind+1, med_t_name])))):
-                df_pat.loc[ind+1, 'new_'+lab_name] = float(df_pat[lab_name+'d_forward'][ind])
-
-    #assign imputed values for NaN Glucose values
-    df_pat.to_csv('df_pat_temp.csv')
-    #df_pat.loc[df_pat[lab_name].isna(),lab_name] = df_pat[df_pat[lab_name].isna()][lab_name+'d_forward']
-    df_pat.loc[((df_pat[lab_name].isna()) & ((df_pat[lab_name+'d_forward'] < max_feature) & (df_pat[lab_name+'d_forward'] > min_feature))),lab_name] = df_pat[((df_pat[lab_name].isna()) & ((df_pat[lab_name+'d_forward'] < max_feature) & (df_pat[lab_name+'d_forward'] > min_feature)))][lab_name+'d_forward']
+        # Update the main dataframe
+        df_pat.loc[df_patient.index, :] = df_patient
 
     return (df_pat[lab_name])
 
@@ -908,42 +658,48 @@ def add_time_from_last_measurement(df, features):
 
     return df, new_columns_ls
 
-def fffil_deltatime_feature(df_data_med,lab_name,delta_time_before):
-    temp_new_lab_name = 'new_'+lab_name
+
+def fffil_deltatime_feature(df_data_med, lab_name, delta_time_before):
+    temp_new_lab_name = 'new_' + lab_name
 
     df_data_med['diff_time'] = df_data_med.groupby('subject_id')['charttime'].diff() / np.timedelta64(1, 'h')
 
-    res = add_time_from_last_measurement(df_data_med,[lab_name])
+    res = add_time_from_last_measurement(df_data_med, [lab_name])
     df = res[0]
     interval_time_lab_name = res[1][0]
 
     # change to zero if value was measured at that time
     df.loc[list(~df[lab_name].isna()), list((interval_time_lab_name == df.columns))] = 0
 
-    #replicate col
-    df[temp_new_lab_name]= df[lab_name]
+    # replicate col
+    df[temp_new_lab_name] = df[lab_name]
 
     # fill forward all values
     df[temp_new_lab_name] = df.groupby('subject_id')[temp_new_lab_name].ffill()
 
-    #convert to NaN Values that were measured after delta_time_before=4h
-    df.loc[list((df[interval_time_lab_name]>delta_time_before)), list((temp_new_lab_name == df.columns))] = np.NaN
+    # convert to NaN Values that were measured after delta_time_before=4h
+    df.loc[list((df[interval_time_lab_name] > delta_time_before)), list((temp_new_lab_name == df.columns))] = np.NaN
 
-    return(df.copy())
+    return (df.copy())
+
 
 def write_log(logfile, msg):
     print(msg)
     with open(logfile, 'a') as f:
         f.write(msg)
 
-def calc_risk_scores(risk_scores_df,models_vector,ver):
-    df_performance = pd.DataFrame(columns=['Split','imputation_method','model','auc','aupr'])
+
+def calc_risk_scores(risk_scores_df, models_vector, ver):
+    df_performance = pd.DataFrame(columns=['Split', 'imputation_method', 'model', 'auc', 'aupr'])
 
     for ind_split in risk_scores_df['Split'].unique():
         for imp_method in risk_scores_df['imputation_method'].unique():
             for model in list(models_vector.keys()):
-                y_prob = risk_scores_df[(risk_scores_df['Split']==ind_split) & (risk_scores_df['imputation_method']==imp_method)][model]
-                y_target = risk_scores_df[(risk_scores_df['Split']==ind_split) & (risk_scores_df['imputation_method']==imp_method)]['Target']
+                y_prob = risk_scores_df[
+                    (risk_scores_df['Split'] == ind_split) & (risk_scores_df['imputation_method'] == imp_method)][model]
+                y_target = risk_scores_df[
+                    (risk_scores_df['Split'] == ind_split) & (risk_scores_df['imputation_method'] == imp_method)][
+                    'Target']
 
                 fpr, tpr, thresholds = roc_curve(y_target, y_prob, drop_intermediate=False)
                 aucRes = roc_auc_score(y_target, y_prob)
@@ -951,54 +707,62 @@ def calc_risk_scores(risk_scores_df,models_vector,ver):
                 precision, recall, thresholds_pr = precision_recall_curve(y_target, y_prob)
                 aupr = auc(recall, precision)
 
-                tempRow = [ind_split,imp_method,model,aucRes, aupr]
+                tempRow = [ind_split, imp_method, model, aucRes, aupr]
                 df_performance.loc[len(df_performance.index)] = pd.Series(tempRow, index=df_performance.columns)
 
-    df_performance.to_csv('df_performance_'+ver+'.csv')
+    df_performance.to_csv('df_performance_' + ver + '.csv')
 
-    return(df_performance)
+    return (df_performance)
 
-def comparison_table(df_performance,metric,ver):
-    res = df_performance.groupby(['imputation_method','model'])[metric].median().reset_index().sort_values(by='model').rename(columns={metric: 'median_'+metric})
-    res['median_'+metric] = round(res['median_'+metric],4)*100
-    mean = round(df_performance.groupby(['imputation_method','model'])[metric].mean().reset_index().sort_values(by='model').rename(columns={metric: 'mean_'+metric})['mean_'+metric],4)*100
-    sd = round(df_performance.groupby(['imputation_method','model'])[metric].std().reset_index().sort_values(by='model').rename(columns={metric: 'std'})['std'],4)*100
 
-    res_summary = pd.concat([res,mean,sd], axis=1)
+def comparison_table(df_performance, metric, ver):
+    res = df_performance.groupby(['imputation_method', 'model'])[metric].median().reset_index().sort_values(
+        by='model').rename(columns={metric: 'median_' + metric})
+    res['median_' + metric] = round(res['median_' + metric], 4) * 100
+    mean = round(df_performance.groupby(['imputation_method', 'model'])[metric].mean().reset_index().sort_values(
+        by='model').rename(columns={metric: 'mean_' + metric})['mean_' + metric], 4) * 100
+    sd = round(df_performance.groupby(['imputation_method', 'model'])[metric].std().reset_index().sort_values(
+        by='model').rename(columns={metric: 'std'})['std'], 4) * 100
 
-    #res_summary['new'] = str(res_summary['median_auc'])+u"\u00B1"+str(res_summary['std'])
-    res_summary['median_std'] = res_summary['median_'+metric].apply("{:.02f}".format).astype(str)+u"\u00B1"+res_summary['std'].apply("{:.02f}".format).astype(str)
-    res_summary['mean_std'] = res_summary['mean_'+metric].apply("{:.02f}".format).astype(str)+u"\u00B1"+res_summary['std'].apply("{:.02f}".format).astype(str)
+    res_summary = pd.concat([res, mean, sd], axis=1)
 
-    df_mean_std = res_summary[['imputation_method','model','mean_std']]
+    # res_summary['new'] = str(res_summary['median_auc'])+u"\u00B1"+str(res_summary['std'])
+    res_summary['median_std'] = res_summary['median_' + metric].apply("{:.02f}".format).astype(str) + u"\u00B1" + \
+                                res_summary['std'].apply("{:.02f}".format).astype(str)
+    res_summary['mean_std'] = res_summary['mean_' + metric].apply("{:.02f}".format).astype(str) + u"\u00B1" + \
+                              res_summary['std'].apply("{:.02f}".format).astype(str)
+
+    df_mean_std = res_summary[['imputation_method', 'model', 'mean_std']]
     df_mean_std = df_mean_std.pivot(index='imputation_method', columns='model', values='mean_std').reset_index()
-    df_mean_std.to_csv('df_mean_std_'+metric+'_'+ver+'.csv', encoding="utf-8-sig")
+    df_mean_std.to_csv('df_mean_std_' + metric + '_' + ver + '.csv', encoding="utf-8-sig")
 
-    df_median_std = res_summary[['imputation_method','model','median_std']]
+    df_median_std = res_summary[['imputation_method', 'model', 'median_std']]
     df_median_std = df_median_std.pivot(index='imputation_method', columns='model', values='median_std').reset_index()
-    df_median_std.to_csv('df_median_std_'+metric+'_'+ver+'.csv', encoding="utf-8-sig")
+    df_median_std.to_csv('df_median_std_' + metric + '_' + ver + '.csv', encoding="utf-8-sig")
 
     print(f"\n comparison table of {metric} was generated")
 
-def generate_comparison_plot(metric,df_performance,ver):
+
+def generate_comparison_plot(metric, df_performance, ver):
     sns.boxplot(y=metric, x='model',
-                     data=df_performance,
-                     palette="colorblind",
-                     hue='imputation_method')
+                data=df_performance,
+                palette="colorblind",
+                hue='imputation_method')
     plt.legend(bbox_to_anchor=(1.04, 1.08), loc=1, borderaxespad=0.)
 
-    plt.savefig("aupr_"+metric+'_'+ver+'.png')
+    plt.savefig("aupr_" + metric + '_' + ver + '.png')
     plt.show()
 
-def exponent_gam_plot(x,y,lab_name,med_t_name):
-    plt.title(lab_name+" & "+med_t_name)
+
+def exponent_gam_plot(x, y, lab_name, med_t_name):
+    plt.title(lab_name + " & " + med_t_name)
 
     ## Exponent ##
     xs = np.array(x)
     ys = np.array(y)
 
     # perform the expnonent fit
-    p0 = (.5, 1, 10) # start with values near those we expect
+    p0 = (.5, 1, 10)  # start with values near those we expect
     exp_params, cv = scipy.optimize.curve_fit(monoExp, xs, ys, p0, maxfev=5000)
     m, t, b = exp_params
     print(f"Y = {m} * e^(-{t} * x) + {b}")
@@ -1011,7 +775,7 @@ def exponent_gam_plot(x,y,lab_name,med_t_name):
 
     ## GAM ##
     X_gam = np.array([[i] for i in list(x)])
-    y_gam =  pd.DataFrame(y)
+    y_gam = pd.DataFrame(y)
 
     # lets fit the mean model first by CV
     gam50 = ExpectileGAM(expectile=0.5).gridsearch(X_gam, y_gam)
@@ -1019,22 +783,21 @@ def exponent_gam_plot(x,y,lab_name,med_t_name):
     # plot the results
     plt.plot(xs, ys, '.')
 
-    #plot exponent
+    # plot exponent
     x_axis_values = np.linspace(min(xs), max(xs), num=500)
     plt.plot(x_axis_values, monoExp(x_axis_values, m, t, b), '--', label="Exponent")
 
-    #plot GAM
+    # plot GAM
     data_points_gam = gam50.generate_X_grid(term=0, n=500)
     plt.plot(data_points_gam, gam50.predict(data_points_gam), label='GAM')
 
     plt.legend()
-    plt.axhline(y = 1, color = 'r', linestyle = '-')
-    plt.xlabel("Hours since "+med_t_name+ " adminstration")
+    plt.axhline(y=1, color='r', linestyle='-')
+    plt.xlabel("Hours since " + med_t_name + " adminstration")
     plt.ylabel('Ratio of ' + lab_name)
-    med_t_name_for_saving = med_t_name.replace('/','_')
-    plt.savefig('plot_'+lab_name+'_'+med_t_name_for_saving+'.jpeg')
+    med_t_name_for_saving = med_t_name.replace('/', '_')
+    plt.savefig('plot_' + lab_name + '_' + med_t_name_for_saving + '.jpeg')
     plt.clf()
     # inspect the parameters
 
-    return(exp_params,gam50)
-
+    return (exp_params, gam50)
