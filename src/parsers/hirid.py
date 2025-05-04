@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import datetime
 
 from src.utils.utils import AnalysisUtils
 from src.utils.constants import HIRID_LAB_IDS
@@ -19,11 +20,13 @@ class HiRiDParser(AnalysisUtils):
         self.o_var_ref = pd.read_csv(os.path.join(path1, 'ordinal_vars_ref.csv'))
 
     def load_med(self):
-
+        print("Started genrating paths")
         pharma_records_paths = [i for iq, i in enumerate(os.walk(os.path.join(self.data, "pharma_records"))) if iq==1][0][2]
         pharma_records_paths = [f for f in pharma_records_paths if f.endswith('.csv')]
+        print("Generated paths")
         pharma_records = pd.concat([pd.read_csv(os.path.join(self.data, "pharma_records", 'csv', file)) for file in pharma_records_paths])
         pharma_records = pharma_records.rename(columns={"pharmaid":"variableid"})
+        print("Generate Records")
 
         pharma_records_with_name = pd.merge(pharma_records, self.h_var_ref, on="variableid", how="inner")
         pharma_records_with_name = pd.merge(pharma_records_with_name, self.g_table, on="patientid", how="inner")
@@ -43,9 +46,9 @@ class HiRiDParser(AnalysisUtils):
         """
         Load kth Medication data
         """
-
+        print(f"Starting Load {k} at {str(datetime.datetime.now())}")
         med1 = self.pharma_records_with_name.sort_values(["HADM_ID", "STARTTIME"]).groupby(["HADM_ID", "ITEMID"]).nth(k-1).reset_index()
-
+        print(f"Index reset completed at {str(datetime.datetime.now())}")
         # stratification
         h_adm_1 = med1["HADM_ID"].to_list()
         med1 = med1[med1["AGE"]>=self.age_b]
@@ -58,7 +61,7 @@ class HiRiDParser(AnalysisUtils):
         med1["MedTimeFromAdmit"] = med1["STARTTIME"]-med1["ADMITTIME"]
         med1["hours_in"] = med1["MedTimeFromAdmit"].dt.total_seconds()/3600
         self.med1 = med1
-
+        print(f"Finishing Load {k} at {str(datetime.datetime.now())}")
         return med1, h_adm_1
 
     def load_med1(self):
@@ -172,23 +175,61 @@ class HiRiDParser(AnalysisUtils):
             t_labs = t_labs.rename(columns={"ITEMID":"OldITEMID", "LABEL":"ITEMID"})
 
             return t_med1, t_med2, t_labs
+    def first_parse(self, use_pairs=False, lab_parts=(0,50), n_med_limit=500):
+        print("Starting to load meds")
+        self.load_med()
+        print("Loading Finished")
+        meds, hadms = [], []
+        i = 1
+        med, hadm = self.load_medk(i)
+        med.to_csv(f'hirid_med_{i}.csv')
+        while med.shape[0] > n_med_limit:
+            meds.append(med)
+            hadms.append(hadm)
+            i += 1
+            print(i)
+            med, hadm = self.load_medk(i)
+            med.to_csv(f'hirid_med_{i}.csv')
+
+        return [meds, hadms]
+
+    def second_parse(self, meds, hadms, lab_parts=(0,50), use_pairs=False,):
+        labs = self.load_lab(hadms, n_parts=lab_parts)
+        print("got labs")
+        t_labs = labs.copy()
+
+        if use_pairs:
+            med_vals_new, labtest_vals_new = self.generate_med_lab_pairs()
+            meds = [med[med["LABEL"].isin(med_vals_new)] for med in meds]
+            t_labs = labs[labs["LABEL"].isin(labtest_vals_new)]
+
+        meds = [med.rename(columns={"ITEMID": "OldITEMID", "LABEL": "ITEMID"}) for med in meds]
+        t_labs = t_labs.rename(columns={"ITEMID": "OldITEMID", "LABEL": "ITEMID"})
+
+        return meds, t_labs
 
     def parse(self, use_pairs=False, lab_parts=(0,50), n_med_limit=500):
         """
         Loading medication and lab test. Performing basic preprocessing on data.
         """
         
+        print("Starting to load meds")
         self.load_med()
+        print("Loading Finished")
         meds, hadms = [], []
         i=1
         med, hadm = self.load_medk(i)
+        med.to_csv(f'hirid_med_{i}.csv')
         while med.shape[0]>n_med_limit:
             meds.append(med)
             hadms.append(hadm)
             i+=1
+            print(i)
             med, hadm = self.load_medk(i)
+            med.to_csv(f'hirid_med_{i}.csv')
         
         labs = self.load_lab(hadms, n_parts=lab_parts)
+        print("got labs")
         t_labs = labs.copy()
         
         if use_pairs:

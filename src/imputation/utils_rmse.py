@@ -2,6 +2,69 @@ import numpy as np
 import pandas as pd
 from sklearn.impute import KNNImputer
 from src.imputation import utils_imputation
+import datetime
+
+def generate_rmse_results(df_meds, features, drug_forward_params, df_data, indexes):
+    ver = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    logfile_name = 'log_file' + ver + '.txt'
+    df_results = pd.DataFrame(
+        columns=['lab_name', 'med_name', 'imputer_type', 'indices_type', 'RMSE', 'nRMSE', 'masked_indices_counter',
+                 'masked_subjects_counter'])
+
+    temp_df_meds = df_meds
+    temp_df_meds = temp_df_meds[temp_df_meds['Lab Name'].isin(features)]
+
+    # for ind in temp_df_meds[temp_df_meds.index > 1880].index:
+    for ind in temp_df_meds.index:
+        temp_row = temp_df_meds[temp_df_meds.index == ind]
+
+        lab_name = temp_row['Lab Name'].tolist()[0]
+        med_t_name = temp_row['Med Name'].tolist()[0]
+
+        print('Create function for ' + lab_name + '<>' + med_t_name)
+
+        # Extract only inputevents that related to the drugs associated with lab_name, df_med includes them
+        df_inputevents, df_med = utils_imputation.extract_med_per_lab(lab_name, temp_row,
+                                                                      drug_forward_params['df_d_items'],
+                                                                      drug_forward_params['inputevents_mv'])
+
+        # add cols of adminstration of each of this drugs to df
+        df_drugs = utils_imputation.add_med_adminstrations_cols(df_inputevents, df_data, df_med)
+
+        # convert to NaN administration of negative/zero dosage
+        df_drugs.loc[(df_drugs[med_t_name] <= 0), med_t_name] = np.nan
+
+        # save drugs file
+        df_drugs.to_csv(f'df_drugs_{lab_name}_{med_t_name}.csv')
+
+        for imputer_type in ['drug_forward', 'ffill', 'median', 'mean']:
+            #    for imputer_type in ['drug_forward','ffill', 'mean','median','knn','iterative_imputer']:
+            print(imputer_type)
+            df_rmse = df_drugs[['subject_id', 'charttime', lab_name, med_t_name]]
+            # all_rmse,drugs_rmse,subjects_rmse = utils_rmse.calculate_rmse_nrmse(df_rmse,lab_name,imputer_type,med_t_name,delta_time_after,delta_time_before,gam_func_temp,logfile_name,drug_forward_type)
+            all_rmse, drugs_rmse, subjects_rmse = calculate_rmse_nrmse(df_rmse, lab_name, imputer_type,
+                                                                                  df_med,
+                                                                                  drug_forward_params[
+                                                                                      'delta_time_after'],
+                                                                                  drug_forward_params[
+                                                                                      'delta_time_before'],
+                                                                                  logfile_name, drug_forward_params[
+                                                                                      'drug_forward_type'],
+                                                                                  drug_forward_params[
+                                                                                      'mimic_data_querier'], indexes)
+
+            tempRow = [lab_name, med_t_name, imputer_type, 'all', all_rmse[0], all_rmse[1], all_rmse[2], all_rmse[3]]
+            df_results.loc[len(df_results.index)] = pd.Series(tempRow, index=df_results.columns)
+
+            tempRow = [lab_name, med_t_name, imputer_type, 'drugs_indices', drugs_rmse[0], drugs_rmse[1], drugs_rmse[2],
+                       drugs_rmse[3]]
+            df_results.loc[len(df_results.index)] = pd.Series(tempRow, index=df_results.columns)
+
+            tempRow = [lab_name, med_t_name, imputer_type, 'subjects_indices', subjects_rmse[0], subjects_rmse[1],
+                       subjects_rmse[2], subjects_rmse[3]]
+            df_results.loc[len(df_results.index)] = pd.Series(tempRow, index=df_results.columns)
+
+    df_results.to_csv(f'df_results_rmse_{ver}.csv')
 
 def mask_values(df, columns, mask_rate=0.3, seed=0, logfile=None):
     """ Given DF, mask (np.nan) each columns (available) values, by mask_rate percent.
@@ -12,7 +75,7 @@ def mask_values(df, columns, mask_rate=0.3, seed=0, logfile=None):
 
     for col in columns:
         sampled_rows = masked_df[col].dropna().sample(frac=mask_rate, random_state=seed).index  # ensure random seed
-        masked_df.loc[sampled_rows, col] = pd.np.nan  # mask avaiable data
+        masked_df.loc[sampled_rows, col] = np.nan  # mask avaiable data
         mask_index[col] = sampled_rows
 
     N_after = masked_df.isnull().sum().sum()
@@ -31,7 +94,7 @@ def nrmse(y, y_tag, org_max, org_min):
         For the min/max we use the scale of the original observed out of all indices"""
     return (rmse(y, y_tag) / (org_max - org_min))
 
-def calculate_rmse_nrmse(df, lab_name,imputer_type,df_med,delta_time_after,delta_time_before,logfile,drug_forward_type,mimic_data_querier):
+def calculate_rmse_nrmse(df, lab_name,imputer_type,df_med,delta_time_after,delta_time_before,logfile,drug_forward_type,mimic_data_querier, indexes):
     med_t_name = df_med.med_label[0]
 
     med_t_name_for_saving = med_t_name.replace('/','_')
@@ -118,11 +181,15 @@ def calculate_rmse_nrmse(df, lab_name,imputer_type,df_med,delta_time_after,delta
 
     # add col names
     df_masked_imputed = pd.DataFrame(df_masked_imputed, columns = df_masked.columns)
-
-    #all_rmse = calc_rmse_nrmse(df_masked_imputed,df, masked_ids,lab_name)+[len(masked_ids[lab_name]),num_masked_subjects]
     all_rmse = [np.nan,np.nan,np.nan,np.nan]
-    drugs_rmse = calc_rmse_nrmse(df_masked_imputed,df, actual_imputed_masked_indices,lab_name)+[len(actual_imputed_masked_indices[lab_name]),num_subjects_who_got_drug_at_the_time_of_drug]
-    subjects_rmse = calc_rmse_nrmse(df_masked_imputed,df, masked_indices_of_subjects_who_got_drug,lab_name)+[len(masked_indices_of_subjects_who_got_drug[lab_name]),num_masked_subjects_who_got_drug]
+    drugs_rmse = [np.nan,np.nan,np.nan,np.nan]
+    subjects_rmse = [np.nan,np.nan,np.nan,np.nan]
+    if 'all' in indexes:
+        all_rmse = calc_rmse_nrmse(df_masked_imputed,df, masked_ids,lab_name)+[len(masked_ids[lab_name]),num_masked_subjects]
+    if 'drugs' in indexes:
+        drugs_rmse = calc_rmse_nrmse(df_masked_imputed,df, actual_imputed_masked_indices,lab_name)+[len(actual_imputed_masked_indices[lab_name]),num_subjects_who_got_drug_at_the_time_of_drug]
+    if 'subjects' in indexes:
+        subjects_rmse = calc_rmse_nrmse(df_masked_imputed,df, masked_indices_of_subjects_who_got_drug,lab_name)+[len(masked_indices_of_subjects_who_got_drug[lab_name]),num_masked_subjects_who_got_drug]
 
     return(all_rmse,drugs_rmse,subjects_rmse)
 

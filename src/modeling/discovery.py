@@ -2,12 +2,47 @@ import scipy.stats as stats
 from statsmodels.stats.multitest import multipletests
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import mannwhitneyu
+import seaborn as sns
 
 
 class ClinicalDiscoveryAnalysis:
     def __init__(self, med_lab_pair_data):
         self.med_lab_pair_data = med_lab_pair_data
-    
+
+    def weighted_ttest_1samp(self, values, weights, popmean=1):
+        """
+        Perform a weighted one-sample t-test using weighted standard error with 1 degree of freedom.
+
+        :param values: Array of sample values.
+        :param weights: Array of weights corresponding to the values.
+        :param popmean: Hypothesized population mean.
+        :return: t-statistic, p-value
+        """
+        values = np.array(values)
+        weights = np.array(weights)
+
+        # Calculate the weighted mean
+        weighted_mean = np.average(values, weights=weights)
+
+        # Calculate the weighted variance with 1 degree of freedom
+        weighted_variance = np.sum(weights * (values - weighted_mean) ** 2) / (np.sum(weights) - 1)
+
+        # Calculate the weighted standard error
+        weighted_standard_error = np.sqrt(weighted_variance) / np.sqrt(np.sum(weights))
+
+        # Calculate the t-statistic
+        t_statistic = (weighted_mean - popmean) / weighted_standard_error
+
+        # Degrees of freedom (for the weighted case)
+        dof = len(values) - 1
+
+        # Calculate the p-value
+        p_value = 2 * stats.t.cdf(-abs(t_statistic), df=dof)
+
+        return t_statistic, p_value
+
     def statistical_tests(self, med_name, lab_name, before_windows, after_windows, min_patients=100, types_l=["abs"]):
         """Perform statistical tests on the before and after lab test values of given medication and lab test pairs. Comparision done between given before and after windows
 
@@ -108,16 +143,32 @@ class ClinicalDiscoveryAnalysis:
                 for b_w in before_windows:
                     vals = med_lab_pairs[med_lab_pairs["LAB_NAME"]==lab_name]
                     vals = vals[vals["MED_NAME"]==med_name]
+                    vals = vals[(vals[f"after_time_{a_w}_sp"] >= 1)]
+                    vals = vals[(vals[f"before_time_{b_w}_sp"] > 0)]
+                    vals[f'before_time_{b_w}_sp'] = vals[f'before_time_{b_w}_sp'].replace([np.inf, -np.inf], np.nan)
+                    vals[f"ratio_{b_w}_{a_w}"] = vals[f"ratio_{b_w}_{a_w}"].replace([np.inf, -np.inf], np.nan)
+                    vals.dropna(subset=[f"ratio_{b_w}_{a_w}", f'before_time_{b_w}_sp'])
+                    times = vals[f'before_time_{b_w}_sp'].replace([np.inf, -np.inf], np.nan).dropna()
                     vals = vals[f"ratio_{b_w}_{a_w}"].replace([np.inf, -np.inf], np.nan).dropna()
-                    if vals.shape[0]>min_patients:
-                        res = stats.ttest_1samp(vals.to_numpy(), popmean=1)
+                    if vals.shape[0] > min_patients:
+                        weight1 = (1 / (1 + times))
+                        weight2 = (1 / (1 + times ** 2))
+                        #weight1h = weight1.hist()
+                        #plt.savefig(f'distribution\\{lab_name}_{med_name}_weight1.png'.replace(' ',''))
+                        #weight2h = weight2.hist()
+                        #plt.savefig(f'distribution\\{lab_name}_{med_name}_weight2.png'.replace(' ',''))
+                        res_normal = stats.ttest_1samp(vals.to_numpy(), popmean=1)
+                        res_weighted1_statistics, weighted1_pvalue = self.weighted_ttest_1samp(vals.to_numpy(), weights=weight1.to_numpy())
+                        res_weighted2_statistics, weighted2_pvalue = self.weighted_ttest_1samp(vals.to_numpy(), weights=weight2.to_numpy())
                         row = {
                             "Lab Name": lab_name,
                             "Med Name": med_name,
                             "Before Window (in Hours)": b_w,
                             "After Window (in Hours)": a_w,
                             "No. of Patients": vals.shape[0],
-                            "1-Sampled Ttest" : res.pvalue
+                            "1-Sampled Ttest": res_normal.pvalue,
+                            "1-Sampled Ttest Weighted 1/before": weighted1_pvalue,
+                            "1-Sampled Ttest Weighted 1/before**2": weighted2_pvalue
                         }
                         stat_test_df.append(row)
             if len(stat_test_df)>0:
